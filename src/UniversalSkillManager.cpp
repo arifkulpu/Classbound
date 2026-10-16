@@ -25,7 +25,7 @@ namespace Classbound
 			{"elemental_resistance", "Elemental Resistance", "Defense", "❖", "Raises native Fire, Frost, and Shock resistance actor values; Skyrim applies its resistance caps.", "+1 percentage point to Fire/Frost/Shock resistance per rank"},
 			{"agility", "Agility", "Utility", "➶", "Raises Skyrim's native movement-speed actor value.", "+0.5% movement speed per rank"},
 			{"luck", "Luck", "Utility", "☘", "No native loot-gold multiplier is exposed; this compatible fallback improves barter through Speech.", "+1 Speech per rank (better vendor prices)"},
-			{"experience", "Experience Gain", "Utility", "✧", "Increases this character's ClassBound XP rewards, applied once before level progression.", "+1% ClassBound XP per rank"},
+			{"experience", "Experience Gain", "Utility", "✪", "Increases this character's share of ClassBound XP after party XP is split.", "+1% XP gained per rank · 30% at rank 30"},
 			{"carry_capacity", "Carry Capacity", "Utility", "▣", "Increases the amount of weight this character can carry.", "+10 Carry Weight per rank"}
 		}};
 		return definitions;
