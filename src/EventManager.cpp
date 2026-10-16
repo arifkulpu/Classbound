@@ -164,53 +164,62 @@ namespace Classbound
 
 	RE::BSEventNotifyControl EventManager::ProcessEvent(const RE::TESSpellCastEvent* a_event, RE::BSTEventSource<RE::TESSpellCastEvent>*)
 	{
-		if (!a_event || !a_event->object) {
+		if (!a_event || !a_event->object || a_event->spell == 0) {
 			return RE::BSEventNotifyControl::kContinue;
 		}
 
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (a_event->object.get() == player) {
+			auto* spellForm = RE::TESForm::LookupByID(a_event->spell);
+			auto* spell = spellForm ? spellForm->As<RE::SpellItem>() : nullptr;
+			if (!spell) return RE::BSEventNotifyControl::kContinue;
+
+			// TESSpellCastEvent can also be raised by abilities, powers, enchantments,
+			// and other automatic effects. Only award activity XP for an explicitly
+			// cast spell or a scroll; passive/constant effects are not player casts.
+			const auto type = spell->GetSpellType();
+			if (type != RE::MagicSystem::SpellType::kSpell &&
+				type != RE::MagicSystem::SpellType::kScroll) {
+				return RE::BSEventNotifyControl::kContinue;
+			}
+			if (spell->GetCastingType() == RE::MagicSystem::CastingType::kConstantEffect) {
+				return RE::BSEventNotifyControl::kContinue;
+			}
+
 			auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
 			playerData.stats.spellsCast++;
-
 			HandleAction("Spell Cast");
 			HandleAction("Spell Infused Shot");
 
-			if (a_event->spell != 0) {
-				if (auto* spellForm = RE::TESForm::LookupByID(a_event->spell)) {
-					if (auto* spell = spellForm->As<RE::SpellItem>()) {
-						auto school = spell->GetAssociatedSkill();
-						const char* spellName = spell->GetName();
-						std::string sName = spellName ? spellName : "";
-						for (auto& c : sName) c = static_cast<char>(tolower(c));
+			auto school = spell->GetAssociatedSkill();
+			const char* spellName = spell->GetName();
+			std::string sName = spellName ? spellName : "";
+			for (auto& c : sName) c = static_cast<char>(tolower(c));
 
-						if (school == RE::ActorValue::kDestruction) {
-							HandleAction("Destruction Spell Cast");
-							if (sName.find("fire") != std::string::npos || sName.find("flame") != std::string::npos) {
-								HandleAction("Fire Cast");
-							} else if (sName.find("frost") != std::string::npos || sName.find("ice") != std::string::npos) {
-								HandleAction("Frost Cast");
-							} else if (sName.find("shock") != std::string::npos || sName.find("spark") != std::string::npos || sName.find("lightning") != std::string::npos) {
-								HandleAction("Shock Cast");
-							}
-						} else if (school == RE::ActorValue::kRestoration) {
-							HandleAction("Healing in Combat");
-							HandleAction("Healing Spell Cast");
-						} else if (school == RE::ActorValue::kConjuration) {
-							HandleAction("Conjuration Spell Cast");
-							if (sName.find("zombie") != std::string::npos || sName.find("reanimate") != std::string::npos || sName.find("corpse") != std::string::npos || sName.find("revive") != std::string::npos) {
-								HandleAction("Undead Raised");
-							}
-							if (sName.find("soul") != std::string::npos) {
-								HandleAction("Soul Trapped");
-							}
-						} else if (school == RE::ActorValue::kIllusion) {
-							HandleAction("Calm Spell Cast");
-							HandleAction("Song Performed");
-						}
-					}
+			if (school == RE::ActorValue::kDestruction) {
+				HandleAction("Destruction Spell Cast");
+				if (sName.find("fire") != std::string::npos || sName.find("flame") != std::string::npos) {
+					HandleAction("Fire Cast");
+				} else if (sName.find("frost") != std::string::npos || sName.find("ice") != std::string::npos) {
+					HandleAction("Frost Cast");
+				} else if (sName.find("shock") != std::string::npos || sName.find("spark") != std::string::npos || sName.find("lightning") != std::string::npos) {
+					HandleAction("Shock Cast");
 				}
-			}
+			} else if (school == RE::ActorValue::kRestoration) {
+				HandleAction("Healing in Combat");
+				HandleAction("Healing Spell Cast");
+			} else if (school == RE::ActorValue::kConjuration) {
+				HandleAction("Conjuration Spell Cast");
+				if (sName.find("zombie") != std::string::npos || sName.find("reanimate") != std::string::npos || sName.find("corpse") != std::string::npos || sName.find("revive") != std::string::npos) {
+					HandleAction("Undead Raised");
+				}
+				if (sName.find("soul") != std::string::npos) {
+					HandleAction("Soul Trapped");
+				}
+			} else if (school == RE::ActorValue::kIllusion) {
+				HandleAction("Calm Spell Cast");
+				HandleAction("Song Performed");
+				}
 		}
 
 		return RE::BSEventNotifyControl::kContinue;
