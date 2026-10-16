@@ -180,12 +180,18 @@ namespace Classbound
 	bool __stdcall PrismaUIManager::OnFrameworkInput(RE::InputEvent* event)
 	{
 		bool openRequested = false;
+		bool closeRequested = false;
 		for (auto* current = event; current; current = current->next) {
 			if (current->GetDevice() != RE::INPUT_DEVICE::kKeyboard) continue;
 			auto* button = current->AsButtonEvent();
 			if (!button) continue;
 
 			const auto key = button->GetIDCode();
+			if (key == RE::BSKeyboardDevice::Keys::kEscape && button->IsDown() &&
+				GetSingleton()->_viewOpen.load(std::memory_order_relaxed)) {
+				closeRequested = true;
+				continue;
+			}
 			if (key == RE::BSKeyboardDevice::Keys::kLeftShift) {
 				if (button->IsUp()) g_leftShiftDown.store(false, std::memory_order_relaxed);
 				else if (button->IsPressed()) g_leftShiftDown.store(true, std::memory_order_relaxed);
@@ -202,6 +208,13 @@ namespace Classbound
 			}
 		}
 
+		if (closeRequested) {
+			if (auto* tasks = SKSE::GetTaskInterface()) {
+				tasks->AddTask([]() { PrismaUIManager::GetSingleton()->CloseView(); });
+				return true;
+			}
+			return false;
+		}
 		if (!openRequested) return false;
 		if (auto* tasks = SKSE::GetTaskInterface()) {
 			tasks->AddTask([]() { PrismaUIManager::GetSingleton()->Open(); });
@@ -252,7 +265,17 @@ namespace Classbound
 		RefreshTrainerAccess();
 		_api->Show(_view);
 		_api->Focus(_view, true, false);
+		_viewOpen.store(true, std::memory_order_relaxed);
 		SendState();
+	}
+
+	void PrismaUIManager::CloseView()
+	{
+		if (!IsAvailable()) return;
+		_viewOpen.store(false, std::memory_order_relaxed);
+		_api->Unfocus(_view);
+		_api->Hide(_view);
+		SKSE::log::info("Closed ClassBound PrismaUI with Escape or close action.");
 	}
 
 	void PrismaUIManager::WaitForFrameworkClose(uint32_t attemptsRemaining)
@@ -463,10 +486,7 @@ namespace Classbound
 		if (!tasks) return;
 		tasks->AddTask([]() {
 			auto* self = GetSingleton();
-			if (self->IsAvailable()) {
-				self->_api->Unfocus(self->_view);
-				self->_api->Hide(self->_view);
-			}
+			self->CloseView();
 		});
 	}
 
@@ -548,6 +568,7 @@ namespace Classbound
 				if (self->_api && self->_view != 0 && self->_api->IsValid(self->_view)) {
 					self->_api->Unfocus(self->_view);
 					self->_api->Hide(self->_view);
+					self->_viewOpen.store(false, std::memory_order_relaxed);
 				}
 			}
 

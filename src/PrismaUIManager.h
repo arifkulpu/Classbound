@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <atomic>
 
 namespace SKSEMenuFramework::Model
 {
@@ -50,6 +51,7 @@ namespace Classbound
 		void RefreshTrainerAccess();
 		void SendState();
 		void ShowView();
+		void CloseView();
 		void BeginFrameworkClose();
 		static void WaitForFrameworkClose(uint32_t attemptsRemaining);
 
@@ -58,6 +60,7 @@ namespace Classbound
 		uint64_t _levelUpView{ 0 };
 		uint64_t _levelUpToken{ 0 };
 		bool _levelUpViewReady{ false };
+		std::atomic_bool _viewOpen{ false };
 		uint32_t _selectedClass{ 0 };
 		SKSEMenuFramework::Model::InputEvent* _hotkeyListener{ nullptr };
 	};
