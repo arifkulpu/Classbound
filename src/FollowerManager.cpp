@@ -7,6 +7,7 @@
 #include "KingCoreAdapter.h"
 #include "UniversalSkillManager.h"
 #include "EffectManager.h"
+#include "PrismaUIManager.h"
 #include <unordered_set>
 #include <RE/Skyrim.h>
 #include <RE/P/ProcessLists.h>
@@ -286,14 +287,14 @@ namespace Classbound
 		// If follower already has a class, changing class requires a Trainer NPC and Gold fee (identical to Player)
 		if (data->currentClass != ClassType::None && data->currentClass != newClass) {
 			if (!classMgr->HasTrainerAccess()) {
-				RE::DebugNotification("Trainer required to change companion's class! Talk to a trainer NPC first.");
+				PrismaUIManager::Notify("Trainer required to change companion's class! Talk to a trainer NPC first.", "warning");
 				SKSE::log::warn("FollowerManager: Trainer required to change follower class.");
 				return false;
 			}
 
 			uint32_t cost = ClassChangeManager::GetChangeCost(data->classLevel);
 			if (!classMgr->DeductGold(cost)) {
-				RE::DebugNotification("Not enough gold to retrain companion!");
+				PrismaUIManager::Notify("Not enough gold to retrain companion!", "warning");
 				SKSE::log::warn("FollowerManager: Not enough gold ({} needed) to change follower class.", cost);
 				return false;
 			}
@@ -324,7 +325,7 @@ namespace Classbound
 
 		char msg[128];
 		snprintf(msg, sizeof(msg), "%s is now a %s (Level %u)!", data->name.c_str(), className.c_str(), data->classLevel);
-		RE::DebugNotification(msg);
+		PrismaUIManager::Notify(msg, "success");
 
 		SKSE::log::info("FollowerManager: Assigned class {} to follower {} (InitialPick: {})",
 			className, data->name, isInitialPick);
@@ -382,7 +383,7 @@ namespace Classbound
 				const auto gained = data->classLevel - startingLevel;
 				if (defOpt) snprintf(msg, sizeof(msg), "LEVEL UP! %s · %s %u · +%u skill points", data->name.c_str(), defOpt->name, data->classLevel, gained * 3);
 				else snprintf(msg, sizeof(msg), "LEVEL UP! %s · Level %u · +%u skill points", data->name.c_str(), data->classLevel, gained * 3);
-				RE::DebugNotification(msg);
+				PrismaUIManager::Notify(msg, "level");
 			}
 		}
 	}

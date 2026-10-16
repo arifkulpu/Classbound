@@ -1,6 +1,7 @@
 #include "AffinityManager.h"
 #include "ClassManager.h"
 #include "ClassRegistry.h"
+#include "PrismaUIManager.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
 
@@ -172,7 +173,7 @@ namespace Classbound
 
 		char msg[128];
 		snprintf(msg, sizeof(msg), "Class Affinity Active: %s!", profile.name.c_str());
-		RE::DebugNotification(msg);
+		PrismaUIManager::Notify(msg, "success");
 		SKSE::log::info("AffinityManager: Synergy activated.");
 	}
 
@@ -359,7 +360,7 @@ namespace Classbound
 			ApplyBonuses(profile);
 		} else if (!criteriaMet && _isAffinityActive) {
 			ClearBonuses();
-			RE::DebugNotification("Class Affinity deactivated (Equipment changed).");
+			PrismaUIManager::Notify("Class Affinity deactivated (Equipment changed).", "info");
 		}
 	}
 }

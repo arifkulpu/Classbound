@@ -6,6 +6,7 @@
 #include "SettingsManager.h"
 #include "FollowerManager.h"
 #include "UniversalSkillManager.h"
+#include "PrismaUIManager.h"
 #include <SKSE/SKSE.h>
 #include <RE/Skyrim.h>
 #include <algorithm>
@@ -15,12 +16,10 @@
 
 namespace Classbound
 {
-	// ── Notify helper ─────────────────────────────────────────────────────────
-	// RE::DebugNotification shows the small HUD message (top-left, like skill popups).
-	// Must be called from the game thread, which AddXP / CheckLevelUp already are.
-	static void Notify(const char* msg)
+	// Route all ClassBound feedback through the non-interactive PrismaUI toast stream.
+	static void Notify(const char* msg, const char* category = "xp")
 	{
-		RE::DebugNotification(msg);
+		PrismaUIManager::Notify(msg ? msg : "", category);
 	}
 
 	// ── AddXP ─────────────────────────────────────────────────────────────────
@@ -82,7 +81,7 @@ namespace Classbound
 			FollowerManager::GetSingleton()->AddFollowerXP(targetFormID, granted);
 			char message[128];
 			snprintf(message, sizeof(message), "Test XP: +%u to %s", granted, follower->name.c_str());
-			Notify(message);
+			Notify(message, "success");
 			return granted;
 		}
 
@@ -92,7 +91,7 @@ namespace Classbound
 		playerData.classXP += granted;
 		char message[96];
 		snprintf(message, sizeof(message), "Test XP: +%u", granted);
-		Notify(message);
+		Notify(message, "success");
 		CheckLevelUp();
 		return granted;
 	}
@@ -131,7 +130,7 @@ namespace Classbound
 			EffectManager::PlayLevelUpSound();
 			char message[128];
 			snprintf(message, sizeof(message), "TEST LEVEL UP! Level %u · +%u skill points", playerData.classLevel, gained * 3);
-			Notify(message);
+			Notify(message, "level");
 		}
 		return gained;
 	}
@@ -200,7 +199,7 @@ namespace Classbound
 			char msg[128];
 			const uint32_t levelsGained = playerData.classLevel - startingLevel;
 			snprintf(msg, sizeof(msg), "LEVEL UP! %s · Level %u · +%u skill points", className, playerData.classLevel, levelsGained * 3);
-			Notify(msg);
+			Notify(msg, "level");
 
 		}
 	}

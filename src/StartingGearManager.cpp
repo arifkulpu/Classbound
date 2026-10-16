@@ -1,4 +1,5 @@
 #include "StartingGearManager.h"
+#include "PrismaUIManager.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
 
@@ -375,6 +376,6 @@ namespace Classbound
 
 		char msg[128];
 		snprintf(msg, sizeof(msg), "Starting equipment & spells received for class!");
-		RE::DebugNotification(msg);
+		PrismaUIManager::Notify(msg, "success");
 	}
 }

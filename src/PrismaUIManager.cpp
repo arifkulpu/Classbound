@@ -27,9 +27,7 @@ namespace Classbound
 
 		void NotifyOnGameThread(std::string message)
 		{
-			if (auto* tasks = SKSE::GetTaskInterface()) tasks->AddTask([message = std::move(message)]() {
-				RE::DebugNotification(message.c_str());
-			});
+			PrismaUIManager::Notify(std::move(message));
 		}
 
 		void PressEscapeForFramework()
@@ -94,6 +92,17 @@ namespace Classbound
 			_levelUpView = 0;
 			SKSE::log::warn("Could not create ClassBound level-up text overlay.");
 		}
+		_notificationView = _api->CreateView("ClassBound/notifications.html", [](PrismaView view) {
+			PrismaUIManager::OnNotificationOverlayReady(view);
+		});
+		if (_notificationView != 0 && _api->IsValid(_notificationView)) {
+			_api->SetOrder(_notificationView, 9999);
+			_api->Hide(_notificationView);
+			if (apiV2) apiV2->RegisterConsoleCallback(_notificationView, OnPrismaConsoleMessage);
+		} else {
+			_notificationView = 0;
+			SKSE::log::warn("Could not create ClassBound notification overlay.");
+		}
 		InitializeHotkey();
 		SKSE::log::info("PrismaUI ClassBound view registered.");
 		return true;
@@ -110,11 +119,50 @@ namespace Classbound
 		});
 	}
 
+	void PrismaUIManager::Notify(std::string message, std::string category)
+	{
+		if (message.empty()) return;
+		if (auto* tasks = SKSE::GetTaskInterface()) {
+			tasks->AddTask([message = std::move(message), category = std::move(category)]() mutable {
+				GetSingleton()->DispatchNotification(std::move(message), std::move(category));
+			});
+		} else {
+			SKSE::log::warn("ClassBound notification skipped because the SKSE task interface is unavailable: {}", message);
+		}
+	}
+
+	void PrismaUIManager::OnNotificationOverlayReady(uint64_t view)
+	{
+		if (auto* tasks = SKSE::GetTaskInterface()) tasks->AddTask([view]() {
+			auto* self = PrismaUIManager::GetSingleton();
+			if (!self->_api || self->_notificationView != view || !self->_api->IsValid(view)) return;
+			self->_notificationViewReady = true;
+			while (!self->_pendingNotifications.empty()) {
+				auto notification = std::move(self->_pendingNotifications.front());
+				self->_pendingNotifications.pop_front();
+				self->DispatchNotification(std::move(notification.first), std::move(notification.second));
+			}
+			SKSE::log::info("ClassBound PrismaUI notification overlay is ready.");
+		});
+	}
+
+	void PrismaUIManager::DispatchNotification(std::string message, std::string category)
+	{
+		if (!_api || _notificationView == 0 || !_api->IsValid(_notificationView) || !_notificationViewReady) {
+			if (_pendingNotifications.size() >= 32) _pendingNotifications.pop_front();
+			_pendingNotifications.emplace_back(std::move(message), std::move(category));
+			return;
+		}
+		const auto script = fmt::format("window.classboundNotify && window.classboundNotify({}, {})",
+			nlohmann::json(message).dump(), nlohmann::json(category).dump());
+		_api->Show(_notificationView);  // Transparent, non-interactive view; never takes focus.
+		_api->Invoke(_notificationView, script.c_str());
+	}
+
 	void PrismaUIManager::ShowLevelUpText(RE::Actor* actor)
 	{
 		if (!actor || actor->IsDead()) return;
-		// Reliable fallback in Skyrim's own HUD, independent of PrismaUI rendering.
-		RE::DebugNotification("LEVEL UP!");
+		// The detailed level-up toast is sent through the PrismaUI notification stream.
 		if (!_api || !_levelUpViewReady || _levelUpView == 0 || !_api->IsValid(_levelUpView)) return;
 		const auto token = ++_levelUpToken;
 		_trackedLevelUpActor.store(actor->GetFormID(), std::memory_order_relaxed);
@@ -322,7 +370,7 @@ namespace Classbound
 			if (SKSEMenuFramework::IsInstalled() && SKSEMenuFramework::IsAnyBlockingWindowOpened()) {
 				if (attemptsRemaining == 0) {
 					SKSE::log::error("SKSEMenuFramework did not close; PrismaUI was not opened to prevent mouse input from being trapped.");
-					RE::DebugNotification("Close the SKSE menu, then open the ClassBound Prisma Codex again.");
+					Notify("Close the SKSE menu, then open the ClassBound Prisma Codex again.", "warning");
 					return;
 				}
 				// Older framework builds may not expose GetMainWindow, so retry the
@@ -505,9 +553,9 @@ namespace Classbound
 			} else if (selected != data.currentClass && ClassChangeManager::GetSingleton()->HasTrainerAccess()) {
 				changed = ClassChangeManager::GetSingleton()->ExecuteClassChange(selected);
 			} else if (selected == data.currentClass) {
-				RE::DebugNotification("That class is already active.");
+				Notify("That class is already active.", "warning");
 			} else {
-				RE::DebugNotification("Speak with a class trainer before changing class.");
+				Notify("Speak with a class trainer before changing class.", "warning");
 			}
 
 			if (changed) self->_selectedClass = 0;
@@ -542,7 +590,7 @@ namespace Classbound
 			if (auto* tasks = SKSE::GetTaskInterface()) tasks->AddTask([formID, classID]() {
 				if (!FollowerManager::GetSingleton()->AssignClass(formID, static_cast<ClassType>(classID))) {
 					SKSE::log::warn("PrismaUI companion class assignment failed for {:08X} -> {}", formID, classID);
-					RE::DebugNotification("Companion class was not changed. Check trainer access and gold.");
+					Notify("Companion class was not changed. Check trainer access and gold.", "warning");
 				}
 				GetSingleton()->SendState();
 			});
@@ -568,8 +616,8 @@ namespace Classbound
 				bool success = false;
 				if (target == "player") success = action == "reset" ? skills->ResetPlayer() : skills->UpgradePlayer(attributeID);
 				else if (formID != 0) success = action == "reset" ? skills->ResetFollower(formID) : skills->UpgradeFollower(formID, attributeID);
-				if (success) RE::DebugNotification(action == "reset" ? "Skill points refunded." : "Universal skill improved.");
-				else RE::DebugNotification("Unable to change skill: check available points and rank limit.");
+				if (success) Notify(action == "reset" ? "Skill points refunded." : "Universal skill improved.", "success");
+				else Notify("Unable to change skill: check available points and rank limit.", "warning");
 				PrismaUIManager::GetSingleton()->SendState();
 			});
 		} catch (const std::exception& e) {
@@ -616,11 +664,11 @@ namespace Classbound
 				else granted = UniversalSkillManager::GetSingleton()->GrantTestPoints(targetFormID, amount);
 
 				if (granted == 0) {
-					RE::DebugNotification("Test action not applied: target may be at the progression cap.");
+					Notify("Test action not applied: target may be at the progression cap.", "warning");
 				} else if (action == "points") {
 					char message[96];
 					snprintf(message, sizeof(message), "Test skill points: +%u", granted);
-					RE::DebugNotification(message);
+					Notify(message, "success");
 				}
 				SKSE::log::info("Progression test action '{}' finished (granted {}).", action, granted);
 				// Level-up closes this view. Avoid serializing state to its hidden CEF page.
