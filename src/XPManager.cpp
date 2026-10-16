@@ -27,7 +27,9 @@ namespace Classbound
 	void XPManager::AddXP(uint32_t amount, const char* reason, bool forceNotification)
 	{
 		auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
-		if (amount == 0) return;
+		// Do not accumulate or announce progression before the player has chosen
+		// a ClassBound class. This also suppresses forced quest XP notifications.
+		if (playerData.currentClass == ClassType::None || amount == 0) return;
 
 		auto* settings = SettingsManager::GetSingleton();
 		if (!settings->automaticClassXP && !forceNotification) return;
