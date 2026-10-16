@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cmath>
 #include <cctype>
+#include <chrono>
 #include <string>
 #include "PrismaUI_API.h"
 #include "SKSEMenuFramework.h"
@@ -116,6 +117,11 @@ namespace Classbound
 		RE::DebugNotification("LEVEL UP!");
 		if (!_api || !_levelUpViewReady || _levelUpView == 0 || !_api->IsValid(_levelUpView)) return;
 		const auto token = ++_levelUpToken;
+		_trackedLevelUpActor.store(actor->GetFormID(), std::memory_order_relaxed);
+		const auto nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now().time_since_epoch()).count());
+		_trackLevelUpUntilMs.store(nowMs + 2600, std::memory_order_relaxed);
+		_nextLevelUpUpdateMs.store(nowMs, std::memory_order_relaxed);
 		_api->Show(_levelUpView);  // Deliberately never focused: no mouse or keyboard capture.
 		UpdateLevelUpOverlay(token, actor->GetFormID());
 	}
@@ -130,8 +136,15 @@ namespace Classbound
 		auto* camera = RE::Main::WorldRootCamera();
 		bool cuePlaced = false;
 		if (actor && !actor->IsDead() && actor->Is3DLoaded() && camera) {
+			// Anchor humanoid actors to the animated head node so follower height,
+			// race, and animation do not leave the banner floating at a stale height.
 			auto point = actor->GetPosition();
-			point.z += actor->GetHeight() + 18.0f;
+			if (auto* head = actor->GetNodeByName(RE::BSFixedString("NPC Head [Head]"))) {
+				point = head->world.translate;
+				point.z += 8.0f;
+			} else {
+				point.z += actor->GetHeight() + 18.0f;
+			}
 			float x = 0.0f, y = 0.0f, depth = 0.0f;
 			const auto& cameraData = camera->GetRuntimeData();
 			const auto& cameraData2 = camera->GetRuntimeData2();
@@ -143,22 +156,16 @@ namespace Classbound
 				// the PrismaUI view uses a top-origin CSS axis. Flip it, then lift the
 				// banner slightly so it sits above the character rather than at the waist.
 				const float textY = std::clamp(1.0f - y - 0.035f, 0.0f, 1.0f);
-				const auto script = fmt::format("window.classboundShowLevelUp && window.classboundShowLevelUp({:.6f}, {:.6f}, {})",
-					x, textY, nlohmann::json("LEVEL UP!").dump());
+				const auto script = fmt::format("window.classboundShowLevelUp && window.classboundShowLevelUp({:.6f}, {:.6f}, {}, {})",
+					x, textY, nlohmann::json("LEVEL UP!").dump(), nlohmann::json(std::to_string(token)).dump());
 				self->_api->Invoke(self->_levelUpView, script.c_str());
-				cuePlaced = true;
-			} else {
-				// Keep the fallback cue above the screen center if projection is unavailable.
-				self->_api->Invoke(self->_levelUpView,
-					"window.classboundShowLevelUp && window.classboundShowLevelUp(0.5, 0.22, 'LEVEL UP!')");
 				cuePlaced = true;
 			}
 		}
 		if (!cuePlaced) {
 			self->_api->Invoke(self->_levelUpView,
-				"window.classboundShowLevelUp && window.classboundShowLevelUp(0.5, 0.22, 'LEVEL UP!')");
+				"window.classboundHideLevelUp && window.classboundHideLevelUp()");
 		}
-		SKSE::log::info("Level-up text dispatched for actor {:08X} through overlay {}.", actorFormID, self->_levelUpView);
 	}
 
 	bool PrismaUIManager::InitializeHotkey()
@@ -173,8 +180,36 @@ namespace Classbound
 			SKSE::log::error("Could not register the Shift+V PrismaUI shortcut.");
 			return false;
 		}
+		if (!_levelUpHudListener) {
+			_levelUpHudListener = SKSEMenuFramework::AddHudElement(OnLevelUpHudFrame);
+			if (_levelUpHudListener) SKSE::log::info("Registered lightweight level-up anchor tracker.");
+			else SKSE::log::warn("Could not register level-up anchor tracker.");
+		}
 		SKSE::log::info("Registered Shift+V shortcut for PrismaUI ClassBound.");
 		return true;
+	}
+
+	void __stdcall PrismaUIManager::OnLevelUpHudFrame()
+	{
+		auto* self = GetSingleton();
+		const auto actorFormID = self->_trackedLevelUpActor.load(std::memory_order_relaxed);
+		if (actorFormID == 0) return;
+
+		const auto nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now().time_since_epoch()).count());
+		if (nowMs >= self->_trackLevelUpUntilMs.load(std::memory_order_relaxed)) {
+			self->_trackedLevelUpActor.store(0, std::memory_order_relaxed);
+			if (self->_api && self->_levelUpView && self->_api->IsValid(self->_levelUpView)) {
+				self->_api->Invoke(self->_levelUpView, "window.classboundHideLevelUp && window.classboundHideLevelUp()");
+				self->_api->Hide(self->_levelUpView);
+			}
+			return;
+		}
+
+		if (nowMs < self->_nextLevelUpUpdateMs.load(std::memory_order_relaxed)) return;
+		// Reproject at 15 Hz only while the temporary banner is active.
+		self->_nextLevelUpUpdateMs.store(nowMs + 66, std::memory_order_relaxed);
+		UpdateLevelUpOverlay(self->_levelUpToken, actorFormID);
 	}
 
 	bool __stdcall PrismaUIManager::OnFrameworkInput(RE::InputEvent* event)

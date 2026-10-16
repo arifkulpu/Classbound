@@ -6,6 +6,7 @@
 namespace SKSEMenuFramework::Model
 {
 	class InputEvent;
+	class HudElement;
 }
 
 namespace RE
@@ -45,6 +46,7 @@ namespace Classbound
 		static void OnUniversalSkillAction(const char* data);
 		static void OnTestAction(const char* data);
 		static void OnLevelUpOverlayReady(uint64_t view);
+		static void __stdcall OnLevelUpHudFrame();
 		static void UpdateLevelUpOverlay(uint64_t token, uint32_t actorFormID);
 		static void OnSettingsChanged(const char* data);
 		static bool __stdcall OnFrameworkInput(RE::InputEvent* event);
@@ -63,5 +65,9 @@ namespace Classbound
 		std::atomic_bool _viewOpen{ false };
 		uint32_t _selectedClass{ 0 };
 		SKSEMenuFramework::Model::InputEvent* _hotkeyListener{ nullptr };
+		SKSEMenuFramework::Model::HudElement* _levelUpHudListener{ nullptr };
+		std::atomic<uint32_t> _trackedLevelUpActor{ 0 };
+		std::atomic<uint64_t> _trackLevelUpUntilMs{ 0 };
+		std::atomic<uint64_t> _nextLevelUpUpdateMs{ 0 };
 	};
 }
