@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClassBound</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand-mark">CB</div>
+      <div class="brand-copy"><span class="eyebrow">THE CLASSBOUND CODEX</span><h1>Choose your path</h1></div>
+      <div class="top-status"><span class="status-dot"></span><span id="active-label">UNBOUND</span><span class="divider"></span><span id="level-label">LEVEL 1</span></div>
+      <button class="icon-button" aria-label="Close" onclick="window.closeClassBound()">×</button>
+    </header>
+
+    <nav class="page-nav" id="page-nav" aria-label="ClassBound pages"></nav>
+
+    <div class="page-panel" id="page-codex">
+
+    <section class="hero-row">
+      <div class="hero-copy">
+        <span class="eyebrow gold">A LIFE SHAPED BY YOUR CHOICES</span>
+        <h2 id="hero-title">Every legend begins<br>with a calling.</h2>
+        <p id="hero-description">Choose a class to define how you fight, grow, and survive in Skyrim.</p>
+        <div class="hero-meta"><span class="rune">✦</span><span>20 paths · 4 disciplines</span><span class="rune">✦</span></div>
+      </div>
+      <div class="hero-art" aria-hidden="true"><div class="sigil-ring ring-one"></div><div class="sigil-ring ring-two"></div><div class="sigil">ᚦ</div><div class="art-caption">THE<br>ADVENTURER</div></div>
+      <aside class="progress-card">
+        <div class="card-kicker">YOUR JOURNEY</div>
+        <div class="journey-class" id="journey-class">No class chosen</div>
+        <div class="journey-sub" id="journey-sub">Choose a calling to begin</div>
+        <div class="xp-label"><span>CLASS EXPERIENCE</span><span id="xp-values">0 / 100</span></div>
+        <div class="xp-track"><div id="xp-fill"></div></div>
+        <div class="journey-footer"><span id="change-cost"></span></div>
+      </aside>
+    </section>
+
+    <nav class="category-nav" id="category-nav" aria-label="Class categories"></nav>
+    <section class="content-grid">
+      <div class="class-list-wrap">
+        <div class="section-heading"><div><span class="eyebrow">THE ARCHETYPES</span><h3>Available classes</h3></div><span class="class-count" id="class-count">20 CLASSES</span></div>
+        <div class="class-grid" id="class-grid"></div>
+      </div>
+      <aside class="detail-panel" id="detail-panel">
+        <div class="detail-art" id="detail-art"><img class="detail-image" id="detail-image" alt="" hidden><div class="detail-sigil" id="detail-sigil">✦</div><span class="detail-tag" id="detail-category">SELECT A CLASS</span></div>
+        <div class="detail-body">
+          <div class="eyebrow">YOUR CALLING</div>
+          <h3 id="detail-name">Choose a class</h3>
+          <p id="detail-playstyle" class="playstyle"></p>
+          <p id="detail-description" class="detail-description">Select a class card to see its role and begin your journey.</p>
+          <div class="detail-rule"></div>
+          <div class="selection-note" id="selection-note">Your choice shapes your class XP and bonuses.</div>
+          <button class="choose-button" id="choose-button" disabled onclick="window.showConfirmation()"><span id="choose-label">SELECT A CLASS</span><span>→</span></button>
+          <div class="trainer-note" id="trainer-note"></div>
+        </div>
+      </aside>
+    </section>
+    <footer class="bottom-bar"><span>CLASSBOUND <i>×</i> SKYRIM</span><span>YOUR STORY. YOUR RULES.</span><span>PRISMA UI EDITION</span></footer>
+    </div>
+
+    <div class="page-panel" id="page-other" hidden>
+      <section class="dynamic-panel">
+        <header class="dynamic-heading"><span class="eyebrow gold">CLASSBOUND CODEX</span><h2 id="dynamic-title">Character</h2><p id="dynamic-subtitle"></p></header>
+        <div id="dynamic-content" class="dynamic-content"></div>
+      </section>
+      <footer class="bottom-bar"><span>CLASSBOUND <i>×</i> SKYRIM</span><span>YOUR STORY. YOUR RULES.</span><span id="dynamic-footer">PRISMA UI EDITION</span></footer>
+    </div>
+  </main>
+  <div class="modal-backdrop" id="confirm-modal" hidden>
+    <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <span class="eyebrow gold">A CHOICE THAT SHAPES YOUR JOURNEY</span>
+      <h2 id="confirm-title">Choose this calling?</h2>
+      <p id="confirm-copy"></p>
+      <div class="confirm-actions"><button class="cancel-button" onclick="hideConfirmation()">CANCEL</button><button class="confirm-button" onclick="confirmSelection()">CONFIRM</button></div>
+    </section>
+  </div>
+  <audio id="classbound-level-up-audio" src="assets/level-up.mp3" preload="auto"></audio>
+  <script src="app.js"></script>
+</body>
+</html>

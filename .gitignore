@@ -1,0 +1,19 @@
+# Build output and generated files
+/build/
+/vcpkg_installed/
+/out/
+*.log
+*.dmp
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exp
+*.cache
+
+# Local editor / OS files
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

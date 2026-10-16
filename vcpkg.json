@@ -1,0 +1,10 @@
+{
+  "name": "classbound",
+  "version": "1.0.0",
+  "dependencies": [
+    "commonlibsse-ng",
+    "spdlog",
+    "imgui",
+    "nlohmann-json"
+  ]
+}

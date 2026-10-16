@@ -1,0 +1,16 @@
+{
+  "default-registry": {
+    "kind": "builtin",
+    "baseline": "14f24da030eb991206c6239f7f0aa98dc854cc3c"
+  },
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/CharmedBaryon/vcpkg-registries",
+      "baseline": "0251759ceea26bbd24bbab9dd0c4a4f89fb0ab96",
+      "packages": [
+        "commonlibsse-ng"
+      ]
+    }
+  ]
+}
