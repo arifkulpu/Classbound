@@ -29,7 +29,8 @@ namespace Classbound
 		void Register();
 
 		// Data-driven action dispatcher: awards shared activity XP
-		void HandleAction(const char* actionKey, float customMultiplier = 1.0f);
+		void HandleAction(const char* actionKey, float customMultiplier = 1.0f, bool isPracticeDummy = false);
+		void UpdateCombatAndTrainingBatch();
 
 		// Event handlers
 		RE::BSEventNotifyControl ProcessEvent(const RE::TESHitEvent* a_event, RE::BSTEventSource<RE::TESHitEvent>* a_eventSource) override;
@@ -46,6 +47,8 @@ namespace Classbound
 	private:
 		EventManager() = default;
 		~EventManager() = default;
+
+		static bool IsPracticeDummy(RE::TESObjectREFR* target);
 
 		struct DamageRecord {
 			uint64_t timestamp{ 0 };
@@ -65,6 +68,8 @@ namespace Classbound
 
 		// Druid follower healing cooldown (ms timestamp of last heal tick)
 		uint64_t _druidHealCooldownMs = 0;
+		uint64_t _combatTacticsCooldownMs = 0;
+
 
 		// Action cooldowns to prevent repeat spam on rapid triggers
 		std::unordered_map<std::string, uint64_t> _actionCooldowns;
@@ -74,9 +79,27 @@ namespace Classbound
 		std::chrono::steady_clock::time_point _lastMaintenance{};
 		std::chrono::steady_clock::time_point _lastActivityPrune{};
 
+		// Combat batching state
+		bool _inCombatState{ false };
+		uint32_t _batchedCombatXP{ 0 };
+		uint32_t _combatHitsCount{ 0 };
+
+		// Practice dummy batching state
+		uint32_t _batchedDummyXP{ 0 };
+		uint64_t _lastDummyHitTimeMs{ 0 };
+
+		// Periodic batch update timer
+		uint64_t _lastBatchCheckMs{ 0 };
+
 		// Track player gold when entering barter menu
 		int32_t _goldBeforeBarter{ 0 };
 		bool _craftingMenuOpen{ false };
+		uint32_t _batchedFoodCount{ 0 };
+		uint32_t _batchedFoodXP{ 0 };
+		uint32_t _batchedPotionsCount{ 0 };
+		uint32_t _batchedPotionsXP{ 0 };
+		uint32_t _batchedGearCount{ 0 };
+		uint32_t _batchedGearXP{ 0 };
 		RE::FormID _lockpickingTarget{ 0 };
 		uint64_t _lockpickingAttemptUntilMs{ 0 };
 	};

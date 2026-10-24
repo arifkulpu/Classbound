@@ -13,7 +13,21 @@
     window.setTimeout(() => toast.remove(), 260);
   };
 
+  let lastMessage = '';
+  let lastMessageTime = 0;
+
   window.classboundNotify = (message, category = 'info') => {
+    const textMsg = String(message || '').trim();
+    if (!textMsg) return;
+
+    // Deduplicate / rate-limit identical notifications occurring within 1.5s
+    const now = Date.now();
+    if (textMsg === lastMessage && (now - lastMessageTime) < 1500) {
+      return;
+    }
+    lastMessage = textMsg;
+    lastMessageTime = now;
+
     const kind = styles[category] ? category : 'info';
     const style = styles[kind];
     const toast = document.createElement('section');
@@ -30,12 +44,13 @@
     label.textContent = style.label;
     const text = document.createElement('span');
     text.className = 'toast-message';
-    text.textContent = String(message || '');
+    text.textContent = textMsg;
     copy.append(label, text);
     toast.append(icon, copy);
     stack.prepend(toast);
 
-    while (stack.children.length > 5) remove(stack.lastElementChild);
+    // Keep stack limited to max 4 to prevent screen clatter and memory churn
+    while (stack.children.length > 4) remove(stack.lastElementChild);
     window.setTimeout(() => remove(toast), style.duration);
   };
 })();

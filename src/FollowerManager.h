@@ -41,6 +41,12 @@ namespace Classbound
 		// Druid class: follower heals player & party when health is low
 		void DruidHealingTick();
 
+		// Combat roles & tactical AI updates (inspired by Fight With Me)
+		void UpdateCombatTactics();
+
+		void SetFollowerFocus(uint32_t formID, TacticalFocus focus);
+		void SetFollowerPosition(uint32_t formID, TacticalPosition position);
+
 		// Serialization helpers
 		void AddLoadedFollower(const FollowerClassData& data);
 
@@ -50,6 +56,7 @@ namespace Classbound
 
 		std::vector<FollowerClassData> _followers;
 		std::chrono::steady_clock::time_point _lastScan{};
+		std::unordered_map<uint32_t, uint64_t> _followerSpecialCooldowns;
 		void ModifyActorAV(RE::Actor* actor, uint32_t avIndex, float delta);
 	};
 }

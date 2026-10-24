@@ -26,7 +26,8 @@ namespace Classbound
 			{"agility", "Agility", "Utility", "➶", "Raises Skyrim's native movement-speed actor value.", "+0.5% movement speed per rank"},
 			{"luck", "Luck", "Utility", "☘", "No native loot-gold multiplier is exposed; this compatible fallback improves barter through Speech.", "+1 Speech per rank (better vendor prices)"},
 			{"experience", "Experience Gain", "Utility", "✪", "Increases this character's share of ClassBound XP after party XP is split.", "+1% XP gained per rank · 30% at rank 30"},
-			{"carry_capacity", "Carry Capacity", "Utility", "▣", "Increases the amount of weight this character can carry.", "+10 Carry Weight per rank"}
+			{"carry_capacity", "Carry Capacity", "Utility", "▣", "Increases the amount of weight this character can carry.", "+10 Carry Weight per rank"},
+			{"gold_finder", "Fortune Hunter", "Utility", "💰", "Increases gold found in corpses and looted containers.", "+1% extra gold found per rank · Up to +30%"}
 		}};
 		return definitions;
 	}
@@ -152,8 +153,10 @@ namespace Classbound
 
 	bool UniversalSkillManager::UpgradePlayer(uint32_t attributeID)
 	{
-		auto& progress = ClassManager::GetSingleton()->GetPlayerData().universalSkills;
-		Validate(progress, ClassManager::GetSingleton()->GetPlayerData().classLevel);
+		auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
+		if (playerData.currentClass == ClassType::None) return false;
+		auto& progress = playerData.universalSkills;
+		Validate(progress, playerData.classLevel);
 		if (attributeID >= kUniversalAttributeCount || progress.ranks[attributeID] >= kMaxUniversalRank || Available(progress) == 0) return false;
 		++progress.ranks[attributeID];
 		ApplyPlayerRank(attributeID, progress);
@@ -174,7 +177,7 @@ namespace Classbound
 	bool UniversalSkillManager::UpgradeFollower(uint32_t formID, uint32_t attributeID)
 	{
 		auto* data = FollowerManager::GetSingleton()->GetFollowerData(formID);
-		if (!data) return false;
+		if (!data || data->currentClass == ClassType::None) return false;
 		auto& progress = data->universalSkills;
 		Validate(progress, data->classLevel);
 		if (attributeID >= kUniversalAttributeCount || progress.ranks[attributeID] >= kMaxUniversalRank || Available(progress) == 0) return false;

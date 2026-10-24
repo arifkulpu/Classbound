@@ -1,0 +1,157 @@
+================================================================================
+                           CLASSBOUND - CHANGELOG v0.2.1
+================================================================================
+Tarih: 17 Ekim 2026
+
+Bu sürümde performans/çökme sorunları giderilmiş, XP kazanım mekanikleri gerçekçi
+ve adil hale getirilmiş, takipçiler için derinlikli savaş rolleri ve taktiksel
+yönergeler eklenmiş ve PrismaUI arayüzü görsel ve tipografik olarak yenilenmiştir.
+
+--------------------------------------------------------------------------------
+1. PERFORMANS, BİLDİRİM & KİLİTLENME DÜZELTMELERİ
+--------------------------------------------------------------------------------
+* Takipçilere ardı ardına yetenek puanı verilirken arayüzün donması/çökmesi engellendi.
+* PrismaUI içine tüm bildirimleri tek tuşla açıp kapatan "Enable All Notifications 
+  (Master Switch)" anahtarı eklendi (Settings sekmesi).
+* Seri bildirimlerin oyun motorunu tıkamaması için bildirim kuyruğu (notification throttle)
+  ve kuyruk boyutu sınırlamaları güçlendirildi.
+* Ayarlar co-save (v14) yapısına dahil edildi ve oturumlar arasında korunması sağlandı.
+
+--------------------------------------------------------------------------------
+2. SINIF SEÇİMİ VE YETENEK AĞACI KISITLAMALARI
+--------------------------------------------------------------------------------
+* Hem oyuncu karakteri hem de takipçiler için sınıf seçimi zorunlu kılındı.
+* Sınıfı seçilmemiş ("UNASSIGNED") olan oyuncu veya takipçilere yetenek ağacından 
+  (Universal / Companion Skills) yetenek puanı verilmesi engellendi; arayüzde 
+  açıklayıcı uyarı paneli gösterildi.
+
+--------------------------------------------------------------------------------
+3. DÖVÜŞ & XP KAZANIM SİSTEMİ DÜZELTMELERİ (BOŞLUĞA VURMA & ANTRENMAN KUKLALARI)
+--------------------------------------------------------------------------------
+* Boşluğa vurarak (havayı keserek) silah veya büyü XP'si kazanma hatası giderildi.
+* Silah ve büyü XP'si artık sadece geçerli hedeflere (düşmanlar veya antrenman kuklaları)
+  gerçek temas sağlandığında kazanılıyor.
+* Oyundaki antrenman mankenleri / kuklaları (Target Dummies & Archery Targets) tespit
+  edilerek eğitim amaçlı vuruşlara XP desteği entegre edildi:
+  - Yakın dövüş silahları ile kuklaya vurulduğunda ilgili silah kategorisi XP'si.
+  - Yay / Tatar yayı ile okçuluk hedeflerine vurulduğunda Archery XP'si.
+  - Büyü yapıldığında kullanılan büyü okuluna (Destruction, Restoration, vb.) göre XP.
+  - Kalkan ile gelen saldırıları karşılama durumunda Block XP'si.
+
+--------------------------------------------------------------------------------
+4. TAKİPÇİ SAVAŞ ROLLERİ & TAKTİKSEL KOMUTA (FIGHT WITH ME ENTEGRASYONU)
+--------------------------------------------------------------------------------
+* Takipçilerin seçilen sınıfına göre otomatik olarak özel Savaş Rolleri atandı:
+  - Tank: Düşmanları üzerine çekme (Taunt & Threat), oyuncuyu koruma.
+  - Bruiser: Savaş narası (War Cry), düşmanları sersemletme (Stagger) ve zırh kırma.
+  - Skirmisher: Kanat saldırıları (Flank), düşmanı silahsızlandırma (Disarm) ve kritik vuruş.
+  - Ranged DPS: Yay ve tatar yayı ile hedefe odaklanma, ok yaylımı (Volley).
+  - Caster DPS: Büyü kalkanı (Ward) açma, yüksek hasarlı büyü patlamaları (Burst).
+  - Healer: Düşük canlı takım arkadaşlarına ve oyuncuya anlık iyileştirme darbesi (Pulse).
+  - Support: Takım saldırı ve dirençlerini artıran savaş marşı (Party Rally).
+* PrismaUI Takipçi menüsüne Taktiksel Yönergeler (Tactical Directives) paneli eklendi:
+  - Hedef Önceliği (Target Focus):
+      * Serbest Savaş (Free Combat)
+      * Oyuncuyu Koru / Korumalık (Protect Player - Bodyguard)
+      * Oyuncunun Hedefine Odaklan (Focus Player's Target)
+      * Büyücü ve Okçulara Öncelik Ver (Prioritize Casters & Archers)
+      * En Zayıf Düşmanları Bitir (Finish Weakest Enemies)
+  - Savaş Formasyonu (Combat Formation):
+      * Ön Hat / Hücum (Frontline - Charge & Engage)
+      * Oyuncuyu Koru / Yakın Takip (Guard Player - Tight Formation)
+      * Arka Hat / Mesafe Koru (Backline - Distance / Hold Back)
+* Takipçi taktikleri save dosyasına kaydedilerek (co-save) sürekli hale getirildi.
+
+--------------------------------------------------------------------------------
+5. PRISMAUI GÖRSEL VE TİPOGRAFİK YENİLEME
+--------------------------------------------------------------------------------
+* Tüm "Codex" ("Class Codex", "The ClassBound Codex") metinleri arayüzden kaldırılarak
+  sade ve temiz "Classes" adlandırmasına geçildi.
+* Takipçi (Followers) sayfası sıfırdan revize edildi:
+  - Kart başlıkları, takipçi adları ve seviye etiketleri büyütüldü.
+  - Takipçi portreleri ve sınıf minyatür görselleri genişletildi.
+  - Taktiksel kontrol paneli ClassBound altın yaldızlı koyu arayüz temasına kavuşturuldu.
+  - Standart açılır menüler yerine temaya uygun altın ok işaretli (`▾`), hover/focus ışıma
+    efektine sahip özel Skyrim/Prisma seçim kutuları entegre edildi.
+  - Sınıf atama alanı (ASSIGN CLASS) ve butonlar daha geniş, okunaklı ve dokunmatik/fare
+    dostu hale getirildi.
+  - Taktiksel Yönergeler (Hedef Önceliği & Formasyon) açılır-kapanır kompakt Akordeon 
+    menüye (Accordion Dropdown) dönüştürüldü; tıklandığında tüm seçenekler dikey olarak 
+    aynı anda görüntülenir, tekerlek kaydırma zorunluluğu ve ekran taşması ortadan kalktı.
+
+--------------------------------------------------------------------------------
+6. TOPLU XP KAZANIMI & DONMA/KİLİTLENME ENGELLEME (COMBAT & DUMMY BATCH XP)
+--------------------------------------------------------------------------------
+* Dövüş esnasında her vuruş ve büyü için anlık bildirim çıkması engellendi.
+* Savaş anında kazanılan tüm XP'ler arka planda biriktirilir (Batch Buffer) ve savaş
+  sona erdiğinde oyuncuya tek seferde toplu olarak ("Combat Victory: +X XP") bildirilir.
+* Antrenman kuklaları (Target Dummies) ile çalışırken her vuruşta bildirim gösterilmez;
+  oyuncu antrenmanı bırakıp 3 saniye boyunca vuruş yapmadığında kazanılan toplam XP
+  tek seferde ("Training Finished: +X XP") takdim edilir.
+* Bu sayede hızlı çift el/büyü saldırılarında bildirim kuyruğunun şişmesinden kaynaklanan
+  oyun kilitlenmeleri (SkyrimDiag / PrismaUI.dll hang) tamamen sonlandırıldı.
+
+--------------------------------------------------------------------------------
+7. YEMEK & EŞYA ÜRETİMİ TOPLU XP SİSTEMİ (COOKING & CRAFTING BATCH XP)
+--------------------------------------------------------------------------------
+* Yemek pişirildiğinde veya ocakta/fırında üretim yapıldığında çıkan "Potion crafted"
+  hatası giderildi. Yemekler için İngilizce "X food prepared (+Y XP)" mesajı tanımlandı.
+* Üretim esnasında her item için ayrı ayrı bildirim çıkması engellendi.
+* Tezgah / ocak kapatıldığında üretilen toplam yemek, iksir veya teçhizat tek bir
+  toplu bildirimle ("%u food prepared (+%u XP)") oyuncuya gösterilir.
+
+--------------------------------------------------------------------------------
+8. SINIF BAŞLANGIÇ EŞYALARI & YOLDAŞ BÜYÜ KİTAPLARI GÜNCELLEMESİ
+--------------------------------------------------------------------------------
+* Archer, Hunter ve Marksman sınıflarında envantere gelmeyen ok sorunu giderildi;
+  Iron Arrow yerine tam uyumlu Steel Arrow (0x0001397D) verildi.
+* Knight sınıfına Iron Sword eklendi ve seçildiği anda oyuncunun yanına donanımlı,
+  sahipsiz olmayan sadık bir savaş atı (War Horse) çağrıldı.
+* Druid sınıfı takipçilere envanterlerine "Healing Hands" büyü kitabı (Spell Tome: Healing Hands) verildi.
+* Necromancer sınıfı takipçilere "Raise Zombie" büyü kitabı (Spell Tome: Raise Zombie) verildi.
+* Alchemist sınıfına 2 adet zehir formülü (Poison Recipe Note 1 & 2) eklendi.
+* Blacksmith sınıfına 5 adet Deri (Leather) ve 6 adet Yakacak Odun (Firewood) eklendi.
+* Explorer sınıfına Creation Club / AE uyumlu "Adventurer Backpack with Bedroll" eklendi.
+* Merchant sınıfının başlangıç altını 1000 Gold'a çıkarıldı ve Garnet, Amethyst, Ruby,
+  Sapphire gibi değerli mücevherler eklendi.
+
+--------------------------------------------------------------------------------
+9. YENİ EVRENSEL YETENEK (FORTUNE HUNTER - GOLD FINDER)
+--------------------------------------------------------------------------------
+* Universal Skill Tree sistemine 17. yetenek olarak "Fortune Hunter" (Gold Finder) eklendi.
+* Her seviyesinde cesetlerden ve sandıklardan yağmalanan altını %1 artıran (maksimum
+  30. seviyede %30 bonus altın) yetenek mekaniği kodlandı ve save sistemine (v15) entegre edildi.
+
+--------------------------------------------------------------------------------
+10. PRISMAUI ÖZEL KISAYOL TUŞU AYARI (DYNAMIC KEYBINDING)
+--------------------------------------------------------------------------------
+* Settings sekmesine dinamik klavye tuş atama kontrolü eklendi.
+* Kullanıcılar tek tuş ("A", "V", "C", "F1" vb.) veya çift kombinasyon ("Ctrl + I",
+  "Alt + U", "Shift + V") seçerek klavyeden bastıkları tuşu menüyü açma kısayolu
+  olarak anında kaydedebilmektedir.
+
+--------------------------------------------------------------------------------
+11. TAKTİKSEL SAVAŞ ROLLERİ & TAUNT / YETENEK DÜZELTMELERİ
+--------------------------------------------------------------------------------
+* Tank (Paladin / Knight) takipçilerin her vuruşta ve sürekli aralıksız taunt atarak
+  savaşı ve yapay zekayı bozması engellendi.
+* Taunt mekaniği iki dengeli ve kontrollü aşamaya bağlandı:
+  1. Bodyguard Kurtarma (Emergency Interpose): Yalnızca oyuncunun canı %40'ın altına
+     düştüğünde devreye girer (20 saniye bekleme süresi).
+  2. Taktiksel Meydan Okuma (Controlled Taunt): Sadece takipçiye "Protect Player"
+     önceliği verildiğinde, en fazla 25 saniyede bir ve sadece oyuncuya saldıran
+     düşmanlara tekil uygulanır.
+* Tüm diğer savaş rolleri için gerçekçi bekleme süreleri (cooldown) eklendi:
+  - Bruiser (War Cry): 30 saniye
+  - Skirmisher (Off-balance Strike): 15 saniye
+  - Caster DPS (Protective Ward): 25 saniye
+  - Support (Party Rally): 30 saniye
+* TESHitEvent içindeki kontrol döngüsü kaldırılarak tüm taktikler saniyede tek bir
+  merkezi zamanlayıcı üzerinden düzenli, akıcı ve kilitlenmesiz hale getirildi.
+
+--------------------------------------------------------------------------------
+12. BELGELENDİRME
+--------------------------------------------------------------------------------
+* README.md dosyasına tüm sınıfların Ekipman Uyumu (Affinity) özellikleri ve sağladığı
+  bonuslar ayrıntılı bir tablo ve rehber olarak eklendi.
+================================================================================

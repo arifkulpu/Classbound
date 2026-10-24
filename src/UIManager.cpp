@@ -1299,6 +1299,10 @@ namespace Classbound
 			settings->SaveSettings();
 		ImGuiMCP::Spacing();
 
+		if (ImGuiMCP::Checkbox("Enable All Notifications (Master Toggle)", &settings->enableNotifications))
+			settings->SaveSettings();
+		ImGuiMCP::Spacing();
+
 		if (ImGuiMCP::Checkbox("Shared XP Notifications", &settings->notifyClassXP))
 			settings->SaveSettings();
 		ImGuiMCP::Spacing();

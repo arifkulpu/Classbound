@@ -100,14 +100,69 @@ body{display:block;padding:0}
 .skill-follower-choice .follower-emblem{width:34px;height:34px;font-size:16px}
 .skill-follower-choice>span:last-child{min-width:0;overflow:hidden}.skill-follower-choice b,.skill-follower-choice small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.skill-follower-choice b{font:12px Georgia,serif;color:#eee5d2}.skill-follower-choice small{margin-top:4px;color:#99958a;font:8px 'Segoe UI',sans-serif;letter-spacing:.5px}
 .companion-skill-detail{min-width:0}.companion-skill-detail>header{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}.companion-skill-detail>header h3{margin:0;color:#eee5d2;font:18px Georgia,serif}.companion-skill-detail>header p{margin:0;color:#99958a;font:9px 'Segoe UI',sans-serif}
-.follower-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.follower-card{min-width:0;padding:13px;background:linear-gradient(145deg,#1d2323,#101415);border:1px solid #dab86d3c;box-shadow:inset 2px 0 #dab86d35}
-.follower-card-head{display:flex;align-items:center;gap:10px;min-width:0}.follower-identity{display:flex;flex:1;flex-direction:column;min-width:0;gap:5px}.follower-identity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#eee5d2;font:16px Georgia,serif}.follower-identity small,.follower-assign-row small{color:#939084;font:8px 'Segoe UI',sans-serif;letter-spacing:1px}
-.follower-portrait{flex:0 0 58px;width:58px;height:76px;object-fit:cover;object-position:center 22%;border:1px solid #dab86d85;box-shadow:0 3px 12px #0009}
-.skill-follower-portrait{flex:0 0 38px;width:38px;height:48px;object-fit:cover;object-position:center 22%;border:1px solid #dab86d70}
-.follower-class-badge{max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 8px;border:1px solid #dab86d3a;color:#dec486;font:8px 'Segoe UI',sans-serif;letter-spacing:.6px}
-.follower-card .follower-role-preview{margin:10px 0 8px;min-height:52px}.follower-progression{margin:8px 0}.progress-caption{display:flex;justify-content:space-between;gap:8px;color:#959184;font:8px 'Segoe UI',sans-serif;letter-spacing:.6px}.progress-caption b{color:#d2c49f;font-weight:500}.follower-progression .progress-line{margin:6px 0;height:3px}
-.follower-assign-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:9px}.follower-assign-row label{display:grid;gap:5px;min-width:0}.follower-assign-row .select-control{width:100%;min-width:0;padding:8px;font-size:9px}.follower-assign{margin:0;padding:8px 10px;white-space:nowrap}.follower-assign span{margin-left:7px;color:#d9bd80}.follower-card .follower-hint{margin:7px 0 0}
+.follower-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.follower-card{min-width:0;padding:16px 18px;background:linear-gradient(145deg,#1b2022,#101314);border:1px solid #dab86d42;box-shadow:inset 3px 0 #dab86d44, 0 6px 20px #0007;position:relative}
+.follower-card-head{display:flex;align-items:center;gap:14px;min-width:0}
+.follower-identity{display:flex;flex:1;flex-direction:column;min-width:0;gap:4px}
+.follower-identity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f3ecde;font:500 18px Georgia,serif;letter-spacing:.3px}
+.follower-identity small{color:#a9a598;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1px}
+.follower-portrait{flex:0 0 68px;width:68px;height:88px;object-fit:cover;object-position:center 22%;border:1px solid #dab86d99;box-shadow:0 4px 14px #000b}
+.skill-follower-portrait{flex:0 0 46px;width:46px;height:58px;object-fit:cover;object-position:center 22%;border:1px solid #dab86d80}
+.follower-class-badge{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 12px;border:1px solid #dab86d55;background:#dab86d14;color:#e8cf90;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1px;text-transform:uppercase}
+.follower-card .follower-role-preview{margin:12px 0 10px;min-height:58px;padding:9px 12px;background:linear-gradient(110deg,#dab86d12,#131819);border:1px solid #dab86d38}
+.follower-role-preview img{width:46px;height:58px;object-fit:cover;border:1px solid #dab86d88}
+.follower-role-preview small{margin-bottom:4px;color:#a89b7e;font:600 9px 'Segoe UI',sans-serif;letter-spacing:1.4px}
+.follower-role-preview b{color:#f5eedf;font:16px Georgia,serif}
+.follower-role-preview em{display:block;margin-top:2px;color:#d8b66a;font:11px/1.3 'Segoe UI',sans-serif;font-style:normal}
+.follower-progression{margin:10px 0 6px}
+.progress-caption{display:flex;justify-content:space-between;gap:8px;color:#a8a395;font:600 9px 'Segoe UI',sans-serif;letter-spacing:.8px}
+.progress-caption b{color:#ded2af;font-weight:600}
+.follower-progression .progress-line{margin:6px 0;height:4px}
+
+/* Tactical Directives panel & custom select styling matching ClassBound / Skyrim UI */
+.follower-tactics-box{margin-top:12px;padding:12px 14px;background:linear-gradient(145deg,rgba(18,22,24,0.92),rgba(12,15,16,0.95));border:1px solid rgba(218,184,109,0.32);box-shadow:inset 0 0 16px rgba(0,0,0,0.4)}
+.tactics-box-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(218,184,109,0.18)}
+.tactics-box-icon{color:#e2c77e;font-size:13px}
+.tactics-box-title{font:600 10px 'Segoe UI',sans-serif;color:#e8cf90;letter-spacing:1.4px}
+.tactics-box-role{margin-left:auto;font:9px 'Segoe UI',sans-serif;color:#9b978a;letter-spacing:.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tactics-controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tactics-field{display:flex;flex-direction:column;gap:5px;min-width:0;width:100%}
+.tactics-field-label{font:600 9px 'Segoe UI',sans-serif;color:#aba696;letter-spacing:1px}
+.tactics-select-wrap{display:block;width:100%;min-width:0}
+.tactics-select{display:block;width:100%;box-sizing:border-box;min-width:0;padding:8px 28px 8px 10px;font:500 11px Georgia,'Segoe UI',serif;color:#f3ecde;background-color:#141819;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23d8b66a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:calc(100% - 10px) center;border:1px solid rgba(218,184,109,0.38);appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;outline:none;border-radius:2px}
+.tactics-select:hover{border-color:#d8b66a;background-color:#1c2123}
+.tactics-select:focus{border-color:#f0d795;box-shadow:0 0 8px rgba(218,184,109,0.3)}
+.tactics-select option{background:#141819;color:#e8e4d9;padding:6px 10px}
+
+/* Collapsible Custom Dropdowns for Tactics */
+.tactics-dropdown{position:relative;width:100%}
+.tactics-dropdown-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;min-width:0;padding:8px 12px;font:500 11px Georgia,'Segoe UI',serif;color:#f3ecde;background-color:#141819;border:1px solid rgba(218,184,109,0.38);border-radius:2px;cursor:pointer;outline:none;transition:border-color .15s}
+.tactics-dropdown-trigger:hover{border-color:#d8b66a;background-color:#1c2123}
+.tactics-dropdown.open .tactics-dropdown-trigger{border-color:#f0d795;box-shadow:0 0 8px rgba(218,184,109,0.3)}
+.tactics-selected-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.tactics-dropdown-arrow{font-size:11px;color:#d8b66a;transition:transform .2s ease;margin-left:6px;flex:none}
+.tactics-dropdown.open .tactics-dropdown-arrow{transform:rotate(180deg)}
+.tactics-dropdown-menu{display:flex;flex-direction:column;gap:5px;width:100%;margin-top:6px;padding:6px;background:linear-gradient(145deg,rgba(16,20,22,0.98),rgba(10,13,14,0.98));border:1px solid rgba(218,184,109,0.3);box-shadow:0 6px 16px rgba(0,0,0,0.6);border-radius:2px}
+.tactics-dropdown-menu[hidden]{display:none}
+
+.formation-btn{display:flex;align-items:center;gap:9px;width:100%;box-sizing:border-box;padding:6px 10px;background:#141819;border:1px solid rgba(218,184,109,0.22);color:#d0cbbf;cursor:pointer;border-radius:2px;text-align:left;transition:all .15s ease}
+.formation-btn:hover{background:#1e2426;border-color:#d8b66a;color:#f3ecde}
+.formation-btn.active{background:linear-gradient(90deg,rgba(218,184,109,0.22),rgba(20,24,25,0.9));border-color:#d8b66a;box-shadow:inset 2px 0 0 #d8b66a, 0 0 10px rgba(218,184,109,0.25)}
+.formation-btn .formation-icon{font-size:12px;color:#d8b66a;flex:none}
+.formation-btn .formation-text{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.formation-btn .formation-text b{font:500 11px Georgia,'Segoe UI',serif;color:#f3ecde}
+.formation-btn.active .formation-text b{color:#f5eedf}
+.formation-btn .formation-text small{font:9px 'Segoe UI',sans-serif;color:#8e8b80;letter-spacing:.3px}
+.formation-btn.active .formation-text small{color:#d8b66a}
+
+.follower-assign-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;margin-top:12px}
+.follower-assign-row label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.follower-assign-row label small{color:#aba696;font:600 9px 'Segoe UI',sans-serif;letter-spacing:1px}
+.follower-assign-row .select-control{display:block;width:100%;box-sizing:border-box;min-width:0;padding:8px 28px 8px 10px;font:500 11px Georgia,'Segoe UI',serif;color:#f3ecde;background-color:#141819;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23d8b66a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:calc(100% - 10px) center;border:1px solid rgba(218,184,109,0.38);appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;border-radius:2px}
+.follower-assign-row .select-control:hover{border-color:#d8b66a;background-color:#1c2123}
+.follower-assign{margin:0;padding:9px 14px;font:600 10px 'Segoe UI',sans-serif;letter-spacing:.8px;white-space:nowrap}
+.follower-assign span{margin-left:7px;color:#d9bd80}
+.follower-card .follower-hint{margin:8px 0 0;font-size:10px;color:#d8b66a}
 @media(max-width:1250px){.skill-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:950px){.skill-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.companion-skill-layout{grid-template-columns:175px minmax(0,1fr)}.follower-roster{grid-template-columns:1fr}}
 @media(max-width:680px){.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.companion-skill-layout{grid-template-columns:1fr}.skill-follower-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:150px}.companion-skill-detail>header{display:block}.follower-assign-row{grid-template-columns:1fr}.follower-assign{width:100%}}

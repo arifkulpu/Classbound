@@ -1,5 +1,6 @@
 #include <SKSE/SKSE.h>
 #include <RE/M/Main.h>
+#include "EventManager.h"
 #include "PrismaUIManager.h"
 #include "ClassChangeManager.h"
 #include "ClassManager.h"
@@ -24,6 +25,10 @@ namespace Classbound
 	{
 		std::atomic_bool g_leftShiftDown{ false };
 		std::atomic_bool g_rightShiftDown{ false };
+		std::atomic_bool g_leftCtrlDown{ false };
+		std::atomic_bool g_rightCtrlDown{ false };
+		std::atomic_bool g_leftAltDown{ false };
+		std::atomic_bool g_rightAltDown{ false };
 
 		void NotifyOnGameThread(std::string message)
 		{
@@ -76,6 +81,7 @@ namespace Classbound
 		_api->RegisterJSListener(_view, "cbClassConfirmed", OnClassConfirmed);
 		_api->RegisterJSListener(_view, "cbCloseClassBound", OnClose);
 		_api->RegisterJSListener(_view, "cbFollowerAssign", OnFollowerAssign);
+		_api->RegisterJSListener(_view, "cbFollowerTacticsChanged", OnFollowerTacticsChanged);
 		_api->RegisterJSListener(_view, "cbUniversalSkillAction", OnUniversalSkillAction);
 		_api->RegisterJSListener(_view, "cbTestAction", OnTestAction);
 		_api->RegisterJSListener(_view, "cbSettingsChanged", OnSettingsChanged);
@@ -148,6 +154,11 @@ namespace Classbound
 
 	void PrismaUIManager::DispatchNotification(std::string message, std::string category)
 	{
+		auto* settings = SettingsManager::GetSingleton();
+		if (!settings->enableNotifications) return;
+		if (category == "xp" && !settings->notifyClassXP) return;
+		if (category == "level" && !settings->notifyClassLevel) return;
+
 		if (!_api || _notificationView == 0 || !_api->IsValid(_notificationView) || !_notificationViewReady) {
 			if (_pendingNotifications.size() >= 32) _pendingNotifications.pop_front();
 			_pendingNotifications.emplace_back(std::move(message), std::move(category));
@@ -239,6 +250,9 @@ namespace Classbound
 
 	void __stdcall PrismaUIManager::OnLevelUpHudFrame()
 	{
+		// Always pump the EventManager batch check so combat exit & dummy 30s timeouts trigger promptly
+		EventManager::GetSingleton()->UpdateCombatAndTrainingBatch();
+
 		auto* self = GetSingleton();
 		const auto actorFormID = self->_trackedLevelUpActor.load(std::memory_order_relaxed);
 		if (actorFormID == 0) return;
@@ -285,8 +299,43 @@ namespace Classbound
 				else if (button->IsPressed()) g_rightShiftDown.store(true, std::memory_order_relaxed);
 				continue;
 			}
-			if (key == RE::BSKeyboardDevice::Keys::kV && button->IsDown() &&
-				(g_leftShiftDown.load(std::memory_order_relaxed) || g_rightShiftDown.load(std::memory_order_relaxed))) {
+			if (key == RE::BSKeyboardDevice::Keys::kLeftControl) {
+				if (button->IsUp()) g_leftCtrlDown.store(false, std::memory_order_relaxed);
+				else if (button->IsPressed()) g_leftCtrlDown.store(true, std::memory_order_relaxed);
+				continue;
+			}
+			if (key == RE::BSKeyboardDevice::Keys::kRightControl) {
+				if (button->IsUp()) g_rightCtrlDown.store(false, std::memory_order_relaxed);
+				else if (button->IsPressed()) g_rightCtrlDown.store(true, std::memory_order_relaxed);
+				continue;
+			}
+			if (key == RE::BSKeyboardDevice::Keys::kLeftAlt) {
+				if (button->IsUp()) g_leftAltDown.store(false, std::memory_order_relaxed);
+				else if (button->IsPressed()) g_leftAltDown.store(true, std::memory_order_relaxed);
+				continue;
+			}
+			if (key == RE::BSKeyboardDevice::Keys::kRightAlt) {
+				if (button->IsUp()) g_rightAltDown.store(false, std::memory_order_relaxed);
+				else if (button->IsPressed()) g_rightAltDown.store(true, std::memory_order_relaxed);
+				continue;
+			}
+
+			auto* settings = SettingsManager::GetSingleton();
+			const uint32_t targetKey = settings->menuKey;
+			const uint32_t targetMod = settings->menuModifier; // 0=None, 1=Shift, 2=Ctrl, 3=Alt
+
+			bool modSatisfied = false;
+			if (targetMod == 0) {
+				modSatisfied = true;
+			} else if (targetMod == 1) {
+				modSatisfied = (g_leftShiftDown.load(std::memory_order_relaxed) || g_rightShiftDown.load(std::memory_order_relaxed));
+			} else if (targetMod == 2) {
+				modSatisfied = (g_leftCtrlDown.load(std::memory_order_relaxed) || g_rightCtrlDown.load(std::memory_order_relaxed));
+			} else if (targetMod == 3) {
+				modSatisfied = (g_leftAltDown.load(std::memory_order_relaxed) || g_rightAltDown.load(std::memory_order_relaxed));
+			}
+
+			if (key == targetKey && button->IsDown() && modSatisfied) {
 				openRequested = true;
 			}
 		}
@@ -474,10 +523,11 @@ namespace Classbound
 			{"itemsCrafted", player.stats.itemsCrafted}, {"locksPicked", player.stats.locksPicked},
 			{"dungeonsCleared", player.stats.dungeonsCleared}};
 		auto* settings = SettingsManager::GetSingleton();
-		state["settings"] = {{"xpMultiplier", settings->xpMultiplier}, {"notifyClassXP", settings->notifyClassXP},
-			{"notifyClassLevel", settings->notifyClassLevel}, {"showDamageNumbers", settings->showDamageNumbers},
-			{"confirmClassChange", settings->confirmClassChange}, {"automaticClassXP", settings->automaticClassXP},
-			{"limitClassLevelToPlayerLevel", settings->limitClassLevelToPlayerLevel}};
+		state["settings"] = {{"xpMultiplier", settings->xpMultiplier}, {"enableNotifications", settings->enableNotifications},
+			{"notifyClassXP", settings->notifyClassXP}, {"notifyClassLevel", settings->notifyClassLevel},
+			{"showDamageNumbers", settings->showDamageNumbers}, {"confirmClassChange", settings->confirmClassChange},
+			{"automaticClassXP", settings->automaticClassXP}, {"limitClassLevelToPlayerLevel", settings->limitClassLevelToPlayerLevel},
+			{"menuModifier", settings->menuModifier}, {"menuKey", settings->menuKey}};
 
 		auto* followerManager = FollowerManager::GetSingleton();
 		followerManager->ScanActiveFollowers(true);
@@ -509,7 +559,10 @@ namespace Classbound
 				{"race", raceKey}, {"sex", sexKey},
 				{"classID", static_cast<uint32_t>(follower.currentClass)}, {"className", followerClass ? followerClass->name : "Unassigned"},
 				{"icon", followerClass ? followerClass->icon : "✦"}, {"level", follower.classLevel}, {"xp", follower.classXP},
-				{"requiredXP", XPManager::GetSingleton()->GetXPForNextLevel(follower.classLevel)}, {"active", follower.isActiveFollower}};
+				{"requiredXP", XPManager::GetSingleton()->GetXPForNextLevel(follower.classLevel)}, {"active", follower.isActiveFollower},
+				{"combatRole", static_cast<uint32_t>(follower.GetCombatRole())},
+				{"tacticalFocus", static_cast<uint32_t>(follower.tacticalFocus)},
+				{"tacticalPosition", static_cast<uint32_t>(follower.tacticalPosition)}};
 			followerEntry["universalSkills"] = makeSkills(follower.universalSkills);
 			if (follower.isActiveFollower) state["followers"].push_back(std::move(followerEntry));
 		}
@@ -600,6 +653,37 @@ namespace Classbound
 		}
 	}
 
+	void PrismaUIManager::OnFollowerTacticsChanged(const char* data)
+	{
+		if (!data) return;
+		try {
+			auto parsed = nlohmann::json::parse(data);
+			const auto formID = parsed.value("formID", uint32_t{ 0 });
+			if (formID == 0) return;
+
+			if (parsed.contains("tacticalFocus")) {
+				uint32_t focus = parsed["tacticalFocus"].get<uint32_t>();
+				if (auto* tasks = SKSE::GetTaskInterface()) {
+					tasks->AddTask([formID, focus]() {
+						FollowerManager::GetSingleton()->SetFollowerFocus(formID, static_cast<TacticalFocus>(focus));
+						GetSingleton()->SendState();
+					});
+				}
+			}
+			if (parsed.contains("tacticalPosition")) {
+				uint32_t pos = parsed["tacticalPosition"].get<uint32_t>();
+				if (auto* tasks = SKSE::GetTaskInterface()) {
+					tasks->AddTask([formID, pos]() {
+						FollowerManager::GetSingleton()->SetFollowerPosition(formID, static_cast<TacticalPosition>(pos));
+						GetSingleton()->SendState();
+					});
+				}
+			}
+		} catch (const std::exception& e) {
+			SKSE::log::error("PrismaUI OnFollowerTacticsChanged failed: {}", e.what());
+		}
+	}
+
 	void PrismaUIManager::OnUniversalSkillAction(const char* data)
 	{
 		if (!data) return;
@@ -613,11 +697,28 @@ namespace Classbound
 				(attributeID >= kUniversalAttributeCount && action == "upgrade")) return;
 			if (auto* tasks = SKSE::GetTaskInterface()) tasks->AddTask([target, action, attributeID, formID]() {
 				auto* skills = UniversalSkillManager::GetSingleton();
+				if (action == "upgrade") {
+					if (target == "player" && !ClassManager::GetSingleton()->HasClass()) {
+						Notify("Choose a class before unlocking skill tree perks.", "warning");
+						return;
+					}
+					if (target == "follower") {
+						auto* fData = FollowerManager::GetSingleton()->GetFollowerData(formID);
+						if (!fData || fData->currentClass == ClassType::None) {
+							Notify("Assign a class to this companion before spending skill points.", "warning");
+							return;
+						}
+					}
+				}
 				bool success = false;
 				if (target == "player") success = action == "reset" ? skills->ResetPlayer() : skills->UpgradePlayer(attributeID);
 				else if (formID != 0) success = action == "reset" ? skills->ResetFollower(formID) : skills->UpgradeFollower(formID, attributeID);
-				if (success) Notify(action == "reset" ? "Skill points refunded." : "Universal skill improved.", "success");
-				else Notify("Unable to change skill: check available points and rank limit.", "warning");
+				if (success) {
+					// Notification on skill upgrade: only send if enabled, or suppress single rank spam
+					Notify(action == "reset" ? "Skill points refunded." : "Universal skill improved.", "success");
+				} else {
+					Notify("Unable to change skill: check available points and rank limit.", "warning");
+				}
 				PrismaUIManager::GetSingleton()->SendState();
 			});
 		} catch (const std::exception& e) {
@@ -687,12 +788,15 @@ namespace Classbound
 			if (auto* tasks = SKSE::GetTaskInterface()) tasks->AddTask([parsed]() {
 				auto* s = SettingsManager::GetSingleton();
 				s->xpMultiplier = std::clamp(parsed.value("xpMultiplier", s->xpMultiplier), 0.1f, 5.0f);
+				s->enableNotifications = parsed.value("enableNotifications", s->enableNotifications);
 				s->notifyClassXP = parsed.value("notifyClassXP", s->notifyClassXP);
 				s->notifyClassLevel = parsed.value("notifyClassLevel", s->notifyClassLevel);
 				s->showDamageNumbers = parsed.value("showDamageNumbers", s->showDamageNumbers);
 				s->confirmClassChange = parsed.value("confirmClassChange", s->confirmClassChange);
 				s->automaticClassXP = parsed.value("automaticClassXP", s->automaticClassXP);
 				s->limitClassLevelToPlayerLevel = parsed.value("limitClassLevelToPlayerLevel", s->limitClassLevelToPlayerLevel);
+				if (parsed.contains("menuModifier")) s->menuModifier = parsed["menuModifier"].get<uint32_t>();
+				if (parsed.contains("menuKey")) s->menuKey = parsed["menuKey"].get<uint32_t>();
 				s->SaveSettings();
 				GetSingleton()->SendState();
 			});

@@ -9,7 +9,7 @@ namespace Classbound
 		static void Register();
 
 	private:
-		static constexpr uint32_t kSerializationVersion = 13;
+		static constexpr uint32_t kSerializationVersion = 15;
 		static constexpr uint32_t kClassDataRecord = 'CLSD';
 		static constexpr uint32_t kFollowerDataRecord = 'FLWR';
 

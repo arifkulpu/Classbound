@@ -47,6 +47,7 @@ namespace Classbound
 		static void OnClassConfirmed(const char* data);
 		static void OnClose(const char* data);
 		static void OnFollowerAssign(const char* data);
+		static void OnFollowerTacticsChanged(const char* data);
 		static void OnUniversalSkillAction(const char* data);
 		static void OnTestAction(const char* data);
 		static void OnLevelUpOverlayReady(uint64_t view);

@@ -1,0 +1,81 @@
+================================================================================
+                           CLASSBOUND - CHANGELOG v0.2.2
+================================================================================
+Tarih: 24 Ekim 2026
+
+Bu sürümde zanaat/yemek pişirme bildirimleri elden geçirilmiş, başlangıç eşyaları
+ve yetenekleri zenginleştirilmiş, yeni evrensel yetenek (Fortune Hunter) eklenmiş,
+PrismaUI için dinamik tekli/çiftli tuş atama sistemi getirilmiş ve tüm takipçi
+savaş rolleri için belirgin görsel/sesli efektler (VFX/SFX) ve bildirimler eklenmiştir.
+
+--------------------------------------------------------------------------------
+1. YEMEK PİŞİRME & TOPLU ZANAAT BİLDİRİM SİSTEMİ
+--------------------------------------------------------------------------------
+* Yemek pişirildiğinde veya fırın kullanıldığında çıkan hatalı "Potion crafted"
+  yazısı düzeltilerek zanaat tipine uygun hale getirildi.
+* Pişirme / iksir üretimi sırasında her eşya için tek tek bildirim çıkması engellendi.
+* Zanaat tezgahından (Cooking Pot / Spit / Oven) ayrıldığınızda tek bir özet
+  bildirim gösterilir:
+  Örnek: "10 food prepared (+150 XP)"
+
+--------------------------------------------------------------------------------
+2. SINIF BAŞLANGIÇ EŞYALARI & BÜYÜ KİTAPLARI DÜZELTMELERİ
+--------------------------------------------------------------------------------
+* Archer, Hunter ve Marksman sınıflarının başlangıcında envanterde görünmeyen
+  Steel Arrow (75x) sorunu çözüldü, doğrudan kuşanılabilir ok olarak eklendi.
+* Knight sınıfına başlangıç için Iron Sword verildi ve oyuncuya ait eyerli bir
+  at (Player Horse) oluşturulması sağlandı.
+* Druid sınıfı seçilen takipçilere "Spell Tome: Healing Hands" kitabı verildi.
+* Necromancer sınıfı seçilen takipçilere "Spell Tome: Raise Zombie" kitabı verildi.
+* Alchemist sınıfına 2 adet zehir tarifi notu (Poison Recipe Notes) eklendi.
+* Blacksmith sınıfına zanaat için 5 Deri (Leather) ve 6 Yakacak Odun (Firewood) eklendi.
+* Explorer sınıfına Creation Club "Adventurer Backpack with Bedroll" çantası eklendi.
+* Merchant sınıfının oyun başı altını 1000 Gold yapıldı ve çeşitli mücevherler
+  (Garnet, Amethyst, Ruby, Sapphire) eklendi.
+
+--------------------------------------------------------------------------------
+3. YENİ YETENEK: FORTUNE HUNTER (DEFİNECİ / GÖZÜ AÇIK)
+--------------------------------------------------------------------------------
+* Universal yetenek ağacına 17. yetenek olarak "Fortune Hunter" eklendi.
+* Cesetlerden ve sandıklardan bulunan altın miktarını her seviyede %1 artırır.
+* Maksimum 30 rütbe (toplam %30'a kadar fazladan altın).
+* SaveManager (Co-Save v15) ile kayıt dosyalarına tam uyumlu olarak entegre edildi.
+
+--------------------------------------------------------------------------------
+4. AYARLAR MENÜSÜ & DİNAMİK TUŞ ATAMA SİSTEMİ (KEYBINDING)
+--------------------------------------------------------------------------------
+* Settings sekmesine etkileşimli tuş atama butonu eklendi.
+* İster tek bir tuş (örn: K, B, O), ister çift tuş kombinasyonu 
+  (örn: Sol Ctrl + I, Sol Alt + U, Shift + M vb.) doğrudan klavyeden basılarak atanabilir.
+* Seçilen tuş kombinasyonu hem ClassBound.ini dosyasına hem de çalışma anına
+  anında kaydedilir ve menü belirlenen tuşla sorunsuz açılır.
+
+--------------------------------------------------------------------------------
+5. TAKİPÇİ SAVAŞ ROLLERİ: GÖRSEL EFEKT (VFX), SES VE BİLDİRİM ENTEGRASYONU
+--------------------------------------------------------------------------------
+* Takipçilerin dövüş yetenekleri artık arka planda gizlice çalışmaz; belirgin
+  Skyrim büyü partikülleri, ses efektleri ve ekran toast bildirimleri ile desteklendi:
+  - Caster DPS (Mage / Elementalist / Battlemage): Oyuncunun canı %45 altına
+    düştüğünde anında oyuncuya koruyucu kalkan (Oakflesh Protective Ward) basar.
+    Görsel yeşil ejder derisi aurası ve kalkan sesi ile bildirim gösterilir:
+    "[Follower] cast Protective Ward on you!"
+  - Healer (Druid): Canı %50 altına inen oyuncu veya takipçilere Healing Hands
+    restorasyon aurası yansıtır ve bildirim verir:
+    "[Follower] healed you for +X HP!"
+  - Tank (Knight / Paladin): Oyuncunun canı %40 altına düştüğünde Bodyguard
+    Interpose yeteneğiyle düşmanları üzerine çeker ve sersemletir:
+    "[Follower] interposed to protect you!"
+    Protect Player odağındayken: "[Follower] taunted enemies away from you!"
+    (Taunt döngüsü ve spam sorunu kontrol altına alınarak 20-25s bekleme süresine bağlandı).
+  - Bruiser (Warrior): Etrafta 2 veya daha fazla düşman varken War Cry patlatır,
+    düşmanları sendeletir:
+    "[Follower] unleashed a War Cry! Enemies staggered!"
+  - Skirmisher (Thief / Assassin): Düşmana yakından dengesini bozan darbe vurur:
+    "[Follower] struck [Enemy] off-balance!"
+  - Ranged DPS (Archer / Hunter / Marksman / Crossbowman): Uzaktaki düşmana
+    Pin Down / Crippling Shot atarak yavaşlatır ve staminasını tüketir:
+    "[Follower] pinned down [Enemy]!"
+  - Support (Bard / Merchant / Alchemist / Explorer): Partiye Courage / Rally
+    aurası basarak Magicka ve Stamina doldurur:
+    "[Follower] rallied the party! (+Stamina & Magicka)"
+================================================================================

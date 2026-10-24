@@ -2,6 +2,7 @@
 #include "PrismaUIManager.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
+#include <cmath>
 
 namespace Classbound
 {
@@ -25,6 +26,7 @@ namespace Classbound
 		case ClassType::Knight:
 			return {
 				{ 0x00153BA6, 1, "Iron Pike", "NewArmoury.esp", "Skyrim.esm", 0x00012EB7 }, // Iron Pike (fallback: Iron Sword)
+				{ 0x00012EB7, 1, "Iron Sword" },          // 1H Iron Sword
 				{ 0x00012EB6, 1, "Iron Shield" },         // Iron Shield
 				{ 0x00012E49, 1, "Iron Armor" },          // Heavy Iron Armor
 				{ 0x00012E4B, 1, "Iron Boots" },          // Iron Boots
@@ -74,7 +76,7 @@ namespace Classbound
 		case ClassType::Archer:
 			return {
 				{ 0x0003B562, 1, "Long Bow" },             // Long Bow
-				{ 0x0003BE12, 75, "Iron Arrow" },          // 75x Iron Arrow
+				{ 0x0001397D, 75, "Steel Arrow" },         // 75x Steel Arrow
 				{ 0x00013911, 1, "Hide Armor" },           // Hide Armor
 				{ 0x00013910, 1, "Hide Boots" },           // Hide Boots
 				{ 0x00013912, 1, "Hide Bracers" },         // Hide Bracers (handwear)
@@ -85,7 +87,7 @@ namespace Classbound
 		case ClassType::Hunter:
 			return {
 				{ 0x00013985, 1, "Hunting Bow" },          // Hunting Bow
-				{ 0x0003BE12, 60, "Iron Arrow" },          // 60x Iron Arrow
+				{ 0x0001397D, 60, "Steel Arrow" },         // 60x Steel Arrow
 				{ 0x00013911, 1, "Hide Armor" },           // Hide Armor
 				{ 0x00013910, 1, "Hide Boots" },           // Hide Boots
 				{ 0x00013912, 1, "Hide Bracers" },         // Hide Bracers (handwear)
@@ -97,7 +99,7 @@ namespace Classbound
 		case ClassType::Marksman:
 			return {
 				{ 0x00013985, 1, "Hunting Bow" },          // Hunting Bow (Sniper setup)
-				{ 0x0003BE12, 100, "Iron Arrow" },         // 100x Iron Arrow
+				{ 0x0001397D, 100, "Steel Arrow" },        // 100x Steel Arrow
 				{ 0x0003619E, 1, "Leather Armor" },        // Leather Armor
 				{ 0x00013920, 1, "Leather Boots" },        // Leather Boots
 				{ 0x00013921, 1, "Leather Bracers" },      // Leather Bracers (handwear)
@@ -191,7 +193,11 @@ namespace Classbound
 				{ 0x00086993, 1, "Fine Boots" },           // Fine Boots
 				{ 0x000261C1, 1, "Gloves" },               // Plain Gloves (handwear)
 				{ 0x000CEE84, 1, "Fine Hat" },             // Fine Hat (headwear)
-				{ 0x0000000F, 250, "Gold" }                // 250 Extra Starting Gold
+				{ 0x0000000F, 1000, "Gold" },              // 1000 Starting Gold
+				{ 0x00063B46, 2, "Garnet" },               // Gems
+				{ 0x00063B47, 2, "Amethyst" },
+				{ 0x00063B45, 1, "Ruby" },
+				{ 0x00063B43, 1, "Sapphire" }
 			};
 
 		case ClassType::Bard:
@@ -216,7 +222,9 @@ namespace Classbound
 				{ 0x0003EADD, 4, "Potion of Minor Healing" },
 				{ 0x0003EAE0, 4, "Potion of Minor Magicka" },
 				{ 0x0003EAE5, 4, "Potion of Minor Stamina" },
-				{ 0x00073F38, 3, "Frostbite Venom" }       // Poisons
+				{ 0x00073F38, 3, "Frostbite Venom" },      // Poisons
+				{ 0x00073F34, 1, "Poison Recipe Note 1" }, // Poison Recipes
+				{ 0x00073F35, 1, "Poison Recipe Note 2" }
 			};
 
 		case ClassType::Blacksmith:
@@ -228,7 +236,9 @@ namespace Classbound
 				{ 0x00013922, 1, "Leather Helmet" },       // Leather Helmet (headwear)
 				{ 0x0005ACE4, 10, "Iron Ingot" },          // 10x Iron Ingot
 				{ 0x0005ACE5, 5, "Steel Ingot" },          // 5x Steel Ingot
-				{ 0x000800E4, 5, "Leather Strips" }        // Leather Strips
+				{ 0x000800E4, 5, "Leather Strips" },       // Leather Strips
+				{ 0x000DB5D2, 5, "Leather" },              // 5x Leather
+				{ 0x0006F993, 6, "Firewood" }              // 6x Firewood
 			};
 
 		case ClassType::Explorer:
@@ -240,7 +250,8 @@ namespace Classbound
 				{ 0x0006F39E, 1, "Fur Helmet" },           // Fur Helmet
 				{ 0x00034CDD, 5, "Torch" },                // 5x Torch
 				{ 0x0000000A, 10, "Lockpick" },            // 10x Lockpick
-				{ 0x0003EADD, 3, "Potion of Minor Healing" }
+				{ 0x0003EADD, 3, "Potion of Minor Healing" },
+				{ 0x0000080A, 1, "Adventurer Backpack with Bedroll", "ccfsvsse001-backpacks.esl" } // CC Backpack (fallback to null if CC missing)
 			};
 
 		default:
@@ -341,6 +352,7 @@ namespace Classbound
 		case ClassType::Necromancer:
 			AddSpellToActor(actor, 0x000211EB); // Raise Zombie
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
+			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Raise Zombie
 			break;
 
 		case ClassType::Paladin:
@@ -352,6 +364,7 @@ namespace Classbound
 			AddSpellToActor(actor, 0x00012FCC); // Healing
 			AddSpellToActor(actor, 0x00012FC6); // Healing Hands (heal others)
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
+			AddItemToActor(actor, 0x000A26F8, 1); // Spell Tome: Healing Hands
 			break;
 
 		case ClassType::Bard:
@@ -367,12 +380,79 @@ namespace Classbound
 			static_cast<uint32_t>(classType), actor->GetName());
 	}
 
+	void StartingGearManager::SpawnHorseForPlayer()
+	{
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		if (!player) return;
+
+		auto* cell = player->GetParentCell();
+		if (!cell) return;
+
+		// If player is inside an interior, delay or summon near player when outdoor, but PlaceObjectAtMe handles current cell
+		// Whiterun horse base form: 0x000684F1 (EncHorseSaddled)
+		auto* horseBase = RE::TESForm::LookupByID<RE::TESNPC>(0x000684F1);
+		if (!horseBase) {
+			if (auto* dh = RE::TESDataHandler::GetSingleton()) {
+				horseBase = dh->LookupForm<RE::TESNPC>(0x000684F1, "Skyrim.esm");
+			}
+		}
+
+		if (!horseBase) {
+			SKSE::log::warn("StartingGearManager: Could not find horse base form 0x000684F1");
+			return;
+		}
+
+		auto placedRefr = player->PlaceObjectAtMe(horseBase, false);
+		if (!placedRefr) {
+			SKSE::log::warn("StartingGearManager: PlaceObjectAtMe failed for horse");
+			return;
+		}
+
+		auto* horseActor = placedRefr->As<RE::Actor>();
+		if (horseActor) {
+			// Offset horse position 200 units to player's side/front so it doesn't clip directly inside the player
+			auto pos = player->GetPosition();
+			float angleZ = player->GetAngleZ();
+			pos.x += 180.0f * std::sin(angleZ);
+			pos.y += 180.0f * std::cos(angleZ);
+			horseActor->SetPosition(pos, true);
+
+			// Add player ownership
+			horseActor->extraList.SetOwner(player);
+
+			// Add to PlayerHorseFaction (0x000684E0) rank 0
+			auto* horseFaction = RE::TESForm::LookupByID<RE::TESFaction>(0x000684E0);
+			if (horseFaction) {
+				horseActor->AddToFaction(horseFaction, 0);
+			}
+
+			// Link as player's last ridden horse via ExtraHorse on player
+			auto* xHorse = player->extraList.GetByType<RE::ExtraHorse>();
+			if (!xHorse) {
+				xHorse = RE::BSExtraData::Create<RE::ExtraHorse>();
+				if (xHorse) {
+					player->extraList.Add(xHorse);
+				}
+			}
+			if (xHorse) {
+				xHorse->horseRef = horseActor->GetHandle();
+			}
+
+			SKSE::log::info("StartingGearManager: Successfully summoned war horse for Knight!");
+			PrismaUIManager::Notify("A loyal war horse has arrived to serve you!", "success");
+		}
+	}
+
 	void StartingGearManager::GrantStartingGear(ClassType classType)
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (!player) return;
 
 		GrantStartingGearToActor(player, classType);
+
+		if (classType == ClassType::Knight) {
+			SpawnHorseForPlayer();
+		}
 
 		char msg[128];
 		snprintf(msg, sizeof(msg), "Starting equipment & spells received for class!");

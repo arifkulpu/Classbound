@@ -39,5 +39,6 @@ namespace Classbound
 		std::vector<StartingItem> GetGearForClass(ClassType type) const;
 		void AddItemToActor(RE::Actor* actor, uint32_t formID, uint32_t count, const char* sourcePlugin = nullptr, const char* fallbackPlugin = nullptr, uint32_t fallbackFormID = 0);
 		void AddSpellToActor(RE::Actor* actor, uint32_t spellFormID);
+		void SpawnHorseForPlayer();
 	};
 }

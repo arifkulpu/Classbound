@@ -29,8 +29,16 @@ namespace Classbound
 				// prevent a crash at mod startup from a corrupted or hand-edited INI file.
 				try {
 					if (key == "fXPMultiplier") xpMultiplier = std::stof(value);
+					else if (key == "bEnableNotifications") enableNotifications = (value == "true" || value == "1");
+					else if (key == "bNotifyClassXP") notifyClassXP = (value == "true" || value == "1");
+					else if (key == "bNotifyClassLevel") notifyClassLevel = (value == "true" || value == "1");
+					else if (key == "bShowDamageNumbers") showDamageNumbers = (value == "true" || value == "1");
+					else if (key == "bConfirmClassChange") confirmClassChange = (value == "true" || value == "1");
+					else if (key == "bAutomaticClassXP") automaticClassXP = (value == "true" || value == "1");
 					else if (key == "bLimitClassLevelToPlayerLevel") limitClassLevelToPlayerLevel = (value == "true" || value == "1");
 					else if (key == "bEnableCheatMenu") enableCheatMenu = (value == "true" || value == "1");
+					else if (key == "uMenuModifier") menuModifier = static_cast<uint32_t>(std::stoul(value));
+					else if (key == "uMenuKey") menuKey = static_cast<uint32_t>(std::stoul(value));
 				} catch (const std::exception& ex) {
 					SKSE::log::warn("SettingsManager: Failed to parse key '{}' = '{}': {}", key, value, ex.what());
 				}
@@ -46,8 +54,16 @@ namespace Classbound
 		if (file.is_open()) {
 			file << "[Main]\n";
 			file << "fXPMultiplier=" << xpMultiplier << "\n";
+			file << "bEnableNotifications=" << (enableNotifications ? "true" : "false") << "\n";
+			file << "bNotifyClassXP=" << (notifyClassXP ? "true" : "false") << "\n";
+			file << "bNotifyClassLevel=" << (notifyClassLevel ? "true" : "false") << "\n";
+			file << "bShowDamageNumbers=" << (showDamageNumbers ? "true" : "false") << "\n";
+			file << "bConfirmClassChange=" << (confirmClassChange ? "true" : "false") << "\n";
+			file << "bAutomaticClassXP=" << (automaticClassXP ? "true" : "false") << "\n";
 			file << "bLimitClassLevelToPlayerLevel=" << (limitClassLevelToPlayerLevel ? "true" : "false") << "\n";
 			file << "bEnableCheatMenu=" << (enableCheatMenu ? "true" : "false") << "\n";
+			file << "uMenuModifier=" << menuModifier << "\n";
+			file << "uMenuKey=" << menuKey << "\n";
 			SKSE::log::info("Settings saved.");
 		}
 	}

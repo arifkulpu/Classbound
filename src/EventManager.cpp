@@ -5,6 +5,7 @@
 #include "ClassChangeManager.h"
 #include "FollowerManager.h"
 #include "AffinityManager.h"
+#include "PrismaUIManager.h"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -37,21 +38,119 @@ namespace Classbound
 		}
 	}
 
-	void EventManager::HandleAction(const char* actionKey, float customMultiplier)
+	bool EventManager::IsPracticeDummy(RE::TESObjectREFR* target)
+	{
+		if (!target) return false;
+		auto* base = target->GetBaseObject();
+		if (!base) return false;
+
+		std::string edid = base->GetFormEditorID() ? base->GetFormEditorID() : "";
+		std::string name = target->GetName() ? target->GetName() : (base->GetName() ? base->GetName() : "");
+		for (auto& c : edid) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		for (auto& c : name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		if (edid.find("dummy") != std::string::npos || edid.find("target") != std::string::npos ||
+			edid.find("practice") != std::string::npos || edid.find("archerytarget") != std::string::npos) {
+			return true;
+		}
+		if (name.find("dummy") != std::string::npos || name.find("target") != std::string::npos ||
+			name.find("practice") != std::string::npos || name.find("kukla") != std::string::npos ||
+			name.find("manken") != std::string::npos) {
+			return true;
+		}
+		return false;
+	}
+
+	void EventManager::HandleAction(const char* actionKey, float customMultiplier, bool isPracticeDummy)
 	{
 		if (!actionKey || actionKey[0] == '\0') return;
 		uint32_t reward = 0;
 		if (std::strcmp(actionKey, "Lock Picked") == 0) reward = 4;
 		else if (std::strcmp(actionKey, "Spell Cast") == 0 || std::strcmp(actionKey, "Destruction Spell Cast") == 0 ||
-			std::strcmp(actionKey, "Conjuration Spell Cast") == 0 || std::strcmp(actionKey, "Healing Spell Cast") == 0) reward = 2;
+			std::strcmp(actionKey, "Conjuration Spell Cast") == 0 || std::strcmp(actionKey, "Healing Spell Cast") == 0 ||
+			std::strcmp(actionKey, "Illusion Spell Cast") == 0 || std::strcmp(actionKey, "Alteration Spell Cast") == 0) reward = 2;
+		else if (std::strcmp(actionKey, "One-Handed Combat") == 0 || std::strcmp(actionKey, "Two-Handed Combat") == 0 ||
+			std::strcmp(actionKey, "Archery Combat") == 0 || std::strcmp(actionKey, "Staff Strike") == 0 ||
+			std::strcmp(actionKey, "Block Successful Hit") == 0 || std::strcmp(actionKey, "Shield Bash Hit") == 0 ||
+			std::strcmp(actionKey, "Training Dummy Hit") == 0 || std::strcmp(actionKey, "Power Attack Hit") == 0) reward = 2;
 		if (!reward) return;
+
 		auto now = std::chrono::steady_clock::now();
 		auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-		const uint64_t cooldown = reward == 2 ? 1500 : 750;
+		const uint64_t cooldown = 1200; // 1.2s cooldown between hit/spell combat XP ticks
 		auto& last = _actionCooldowns[actionKey];
 		if (nowMs - last < cooldown) return;
 		last = nowMs;
-		XPManager::GetSingleton()->AddXP(static_cast<uint32_t>(static_cast<float>(reward) * customMultiplier), actionKey);
+
+		const uint32_t finalXP = static_cast<uint32_t>(static_cast<float>(reward) * customMultiplier);
+
+		// If hit was on practice dummy: accumulate in dummy buffer without triggering notification spam.
+		if (isPracticeDummy) {
+			_batchedDummyXP += finalXP;
+			_lastDummyHitTimeMs = nowMs;
+			return;
+		}
+
+		// If player is in active combat: accumulate in combat buffer until combat ends.
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		if (player && player->IsInCombat()) {
+			_batchedCombatXP += finalXP;
+			_combatHitsCount++;
+			return;
+		}
+
+		// Non-combat utility actions (like lockpicking): grant normally
+		XPManager::GetSingleton()->AddXP(finalXP, actionKey);
+	}
+
+	void EventManager::UpdateCombatAndTrainingBatch()
+	{
+		auto now = std::chrono::steady_clock::now();
+		uint64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+		if (nowMs - _lastBatchCheckMs < 500) return;
+		_lastBatchCheckMs = nowMs;
+
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		if (!player) return;
+
+		// Check player combat state transition
+		const bool currentlyInCombat = player->IsInCombat();
+		if (_inCombatState && !currentlyInCombat) {
+			// Combat ended! Award all batched combat XP in a single consolidated notification.
+			if (_batchedCombatXP > 0) {
+				char msg[128];
+				snprintf(msg, sizeof(msg), "Combat Victory: +%u XP", _batchedCombatXP);
+				XPManager::GetSingleton()->AddXP(_batchedCombatXP, msg, true);
+				_batchedCombatXP = 0;
+				_combatHitsCount = 0;
+			}
+		}
+		_inCombatState = currentlyInCombat;
+
+		// Drive companion tactics and druid heals if party or player is in combat
+		if (currentlyInCombat) {
+			constexpr uint64_t kCombatTacticsCooldownMs = 4000;
+			if ((nowMs - _combatTacticsCooldownMs) >= kCombatTacticsCooldownMs) {
+				_combatTacticsCooldownMs = nowMs;
+				FollowerManager::GetSingleton()->UpdateCombatTactics();
+			}
+			constexpr uint64_t kDruidHealCooldownMs = 6000;
+			if ((nowMs - _druidHealCooldownMs) >= kDruidHealCooldownMs) {
+				_druidHealCooldownMs = nowMs;
+				FollowerManager::GetSingleton()->DruidHealingTick();
+			}
+		}
+
+		// Check practice dummy session: if player hit a dummy and 3s have passed since last hit, flush total.
+		if (_batchedDummyXP > 0 && _lastDummyHitTimeMs > 0) {
+			if (nowMs - _lastDummyHitTimeMs >= 3000) {
+				char msg[128];
+				snprintf(msg, sizeof(msg), "Training Finished: +%u XP", _batchedDummyXP);
+				XPManager::GetSingleton()->AddXP(_batchedDummyXP, msg, true);
+				_batchedDummyXP = 0;
+				_lastDummyHitTimeMs = 0;
+			}
+		}
 	}
 
 	RE::BSEventNotifyControl EventManager::ProcessEvent(const RE::TESHitEvent* a_event, RE::BSTEventSource<RE::TESHitEvent>*)
@@ -66,11 +165,10 @@ namespace Classbound
 		auto now = std::chrono::steady_clock::now();
 		uint64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
-		// Check party health on combat hits regardless of who was hit.
-		constexpr uint64_t kDruidHealCooldownMs = 8000;
-		if ((nowMs - _druidHealCooldownMs) >= kDruidHealCooldownMs) {
-			_druidHealCooldownMs = nowMs;
-			FollowerManager::GetSingleton()->DruidHealingTick();
+		// Periodic batch checks (combat end & practice dummy 3s timeout)
+		if (nowMs - _lastBatchCheckMs >= 1000) {
+			_lastBatchCheckMs = nowMs;
+			UpdateCombatAndTrainingBatch();
 		}
 
 		// Record damage only when it was dealt by the player or an active companion.
@@ -91,7 +189,15 @@ namespace Classbound
 			}
 		}
 
-		if (isPlayerAttacker || isActiveFollowerAttacker) {
+		auto* targetRef = a_event->target.get();
+		auto* targetActor = targetRef ? targetRef->As<RE::Actor>() : nullptr;
+		const bool isTargetDummy = IsPracticeDummy(targetRef);
+
+		// Only award XP if the target is an enemy/combat actor, or a recognized practice dummy.
+		// Striking the empty air or random static objects does not award combat XP.
+		const bool isValidTarget = (targetActor != nullptr) || isTargetDummy;
+
+		if ((isPlayerAttacker || isActiveFollowerAttacker) && isValidTarget) {
 			DamageRecord rec;
 			rec.timestamp = nowMs;
 			rec.wasSneak = attacker->IsSneaking();
@@ -99,15 +205,15 @@ namespace Classbound
 			// Power attack
 			if (a_event->flags.any(RE::TESHitEvent::Flag::kPowerAttack)) {
 				rec.wasPowerAttack = true;
-				if (isPlayerAttacker) HandleAction("Power Attack Hit");
+				if (isPlayerAttacker) HandleAction("Power Attack Hit", 1.0f, isTargetDummy);
 			}
 
 			// Shield bash / counter
 			if (a_event->flags.any(RE::TESHitEvent::Flag::kBashAttack)) {
 				rec.wasBash = true;
 				if (isPlayerAttacker) {
-					HandleAction("Shield Bash Hit");
-					HandleAction("Block & Counter");
+					HandleAction("Shield Bash Hit", 1.0f, isTargetDummy);
+					HandleAction("Block & Counter", 1.0f, isTargetDummy);
 				}
 			}
 
@@ -115,37 +221,43 @@ namespace Classbound
 			if (a_event->source != 0) {
 				if (auto* sourceForm = RE::TESForm::LookupByID(a_event->source)) {
 					if (auto* weap = sourceForm->As<RE::TESObjectWEAP>()) {
-						if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe()) {
+						if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe() || weap->weaponData.animationType == RE::WEAPON_TYPE::kTwoHandSword || weap->weaponData.animationType == RE::WEAPON_TYPE::kTwoHandAxe) {
 							rec.wasTwoHanded = true;
-							if (isPlayerAttacker) HandleAction("Two-Handed Combat");
+							if (isPlayerAttacker) HandleAction("Two-Handed Combat", 1.0f, isTargetDummy);
 						} else if (weap->IsOneHandedSword() || weap->IsOneHandedAxe() || weap->IsOneHandedMace() || weap->IsOneHandedDagger()) {
 							rec.wasOneHanded = true;
-							if (isPlayerAttacker) HandleAction("One-Handed Combat");
+							if (isPlayerAttacker) HandleAction("One-Handed Combat", 1.0f, isTargetDummy);
 						} else if (weap->IsBow() || weap->IsCrossbow()) {
 							rec.wasBow = true;
 							if (isPlayerAttacker) {
-								HandleAction("Archery Combat");
-								HandleAction("Long Distance Hit");
+								HandleAction("Archery Combat", 1.0f, isTargetDummy);
+								HandleAction("Long Distance Hit", 1.0f, isTargetDummy);
 							}
 						} else if (weap->IsStaff()) {
 							rec.wasStaff = true;
 							if (isPlayerAttacker) {
-								HandleAction("Staff Strike");
-								HandleAction("Magic Combat");
+								HandleAction("Staff Strike", 1.0f, isTargetDummy);
+								HandleAction("Magic Combat", 1.0f, isTargetDummy);
 							}
 						}
 					} else if (auto* spell = sourceForm->As<RE::SpellItem>()) {
 						rec.wasSpell = true;
 						rec.spellSchool = static_cast<uint32_t>(spell->GetAssociatedSkill());
-						if (isPlayerAttacker) HandleAction("Magic Combat");
+						if (isPlayerAttacker) {
+							auto school = spell->GetAssociatedSkill();
+							if (school == RE::ActorValue::kDestruction) HandleAction("Destruction Spell Cast", 1.0f, isTargetDummy);
+							else if (school == RE::ActorValue::kConjuration) HandleAction("Conjuration Spell Cast", 1.0f, isTargetDummy);
+							else if (school == RE::ActorValue::kRestoration) HandleAction("Healing Spell Cast", 1.0f, isTargetDummy);
+							else if (school == RE::ActorValue::kIllusion) HandleAction("Illusion Spell Cast", 1.0f, isTargetDummy);
+							else if (school == RE::ActorValue::kAlteration) HandleAction("Alteration Spell Cast", 1.0f, isTargetDummy);
+							else HandleAction("Spell Cast", 1.0f, isTargetDummy);
+						}
 					}
 				}
 			}
 
-			if (auto* targetRef = a_event->target.get()) {
-				if (auto* targetActor = targetRef->As<RE::Actor>()) {
-					_partyDamagedActors[targetActor->GetFormID()] = rec;
-				}
+			if (targetActor) {
+				_partyDamagedActors[targetActor->GetFormID()] = rec;
 			}
 		}
 		// 2. Player was the target (taking damage / blocking)
@@ -156,7 +268,6 @@ namespace Classbound
 			}
 			HandleAction("Heavy Armor Combat");
 			HandleAction("Heavy Armor Hit Taken");
-
 		}
 
 		return RE::BSEventNotifyControl::kContinue;
@@ -188,38 +299,37 @@ namespace Classbound
 
 			auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
 			playerData.stats.spellsCast++;
-			HandleAction("Spell Cast");
-			HandleAction("Spell Infused Shot");
 
 			auto school = spell->GetAssociatedSkill();
+			const bool isHostile = spell->IsHostile();
+			const bool inCombat = player->IsInCombat();
+
+			// For hostile spells (Destruction, offensive spells), only award cast XP
+			// if the player is in active combat. Casting hostile projectile/touch spells
+			// into empty air outside combat does not award free spell XP.
+			// Utility/buff/healing spells (Restoration, Conjuration summons, Alteration armor)
+			// are allowed to award XP when cast intentionally.
+			if (isHostile && !inCombat) {
+				return RE::BSEventNotifyControl::kContinue;
+			}
+
 			const char* spellName = spell->GetName();
 			std::string sName = spellName ? spellName : "";
-			for (auto& c : sName) c = static_cast<char>(tolower(c));
+			for (auto& c : sName) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
 
 			if (school == RE::ActorValue::kDestruction) {
 				HandleAction("Destruction Spell Cast");
-				if (sName.find("fire") != std::string::npos || sName.find("flame") != std::string::npos) {
-					HandleAction("Fire Cast");
-				} else if (sName.find("frost") != std::string::npos || sName.find("ice") != std::string::npos) {
-					HandleAction("Frost Cast");
-				} else if (sName.find("shock") != std::string::npos || sName.find("spark") != std::string::npos || sName.find("lightning") != std::string::npos) {
-					HandleAction("Shock Cast");
-				}
 			} else if (school == RE::ActorValue::kRestoration) {
-				HandleAction("Healing in Combat");
 				HandleAction("Healing Spell Cast");
 			} else if (school == RE::ActorValue::kConjuration) {
 				HandleAction("Conjuration Spell Cast");
-				if (sName.find("zombie") != std::string::npos || sName.find("reanimate") != std::string::npos || sName.find("corpse") != std::string::npos || sName.find("revive") != std::string::npos) {
-					HandleAction("Undead Raised");
-				}
-				if (sName.find("soul") != std::string::npos) {
-					HandleAction("Soul Trapped");
-				}
 			} else if (school == RE::ActorValue::kIllusion) {
-				HandleAction("Calm Spell Cast");
-				HandleAction("Song Performed");
-				}
+				HandleAction("Illusion Spell Cast");
+			} else if (school == RE::ActorValue::kAlteration) {
+				HandleAction("Alteration Spell Cast");
+			} else {
+				HandleAction("Spell Cast");
+			}
 		}
 
 		return RE::BSEventNotifyControl::kContinue;
@@ -260,6 +370,30 @@ namespace Classbound
 			// The menu event only marks the transaction window. XP is awarded from
 			// actual player inventory additions in TESContainerChangedEvent.
 			_craftingMenuOpen = a_event->opening;
+			if (!a_event->opening) {
+				// Crafting station closed: flush any batched cooking / crafting XP in single consolidated notifications
+				if (_batchedFoodCount > 0 && _batchedFoodXP > 0) {
+					char msg[128];
+					snprintf(msg, sizeof(msg), "%u food prepared (+%u XP)", _batchedFoodCount, _batchedFoodXP);
+					XPManager::GetSingleton()->AddXP(_batchedFoodXP, msg, true);
+					_batchedFoodCount = 0;
+					_batchedFoodXP = 0;
+				}
+				if (_batchedPotionsCount > 0 && _batchedPotionsXP > 0) {
+					char msg[128];
+					snprintf(msg, sizeof(msg), "%u potions crafted (+%u XP)", _batchedPotionsCount, _batchedPotionsXP);
+					XPManager::GetSingleton()->AddXP(_batchedPotionsXP, msg, true);
+					_batchedPotionsCount = 0;
+					_batchedPotionsXP = 0;
+				}
+				if (_batchedGearCount > 0 && _batchedGearXP > 0) {
+					char msg[128];
+					snprintf(msg, sizeof(msg), "%u gear crafted or improved (+%u XP)", _batchedGearCount, _batchedGearXP);
+					XPManager::GetSingleton()->AddXP(_batchedGearXP, msg, true);
+					_batchedGearCount = 0;
+					_batchedGearXP = 0;
+				}
+			}
 		}
 		else if (a_event->menuName == RE::LockpickingMenu::MENU_NAME) {
 			auto now = std::chrono::steady_clock::now();
@@ -359,7 +493,13 @@ namespace Classbound
 		if (rewarded != _deathRewards.end() && nowMs - rewarded->second < 1000)
 			return RE::BSEventNotifyControl::kContinue;
 		_deathRewards[dyingFormId] = nowMs;
-		XPManager::GetSingleton()->AddXP(8, "NPC defeated");
+
+		if (player->IsInCombat()) {
+			_batchedCombatXP += 8;
+			_combatHitsCount++;
+		} else {
+			XPManager::GetSingleton()->AddXP(8, "NPC defeated");
+		}
 
 		auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
 		playerData.stats.enemiesKilled++;
@@ -541,21 +681,59 @@ namespace Classbound
 
 	RE::BSEventNotifyControl EventManager::ProcessEvent(const RE::TESContainerChangedEvent* a_event, RE::BSTEventSource<RE::TESContainerChangedEvent>*)
 	{
-		if (!_craftingMenuOpen || !a_event || a_event->itemCount <= 0) return RE::BSEventNotifyControl::kContinue;
+		if (!a_event || a_event->itemCount <= 0) return RE::BSEventNotifyControl::kContinue;
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (!player || a_event->newContainer != player->GetFormID() || a_event->oldContainer == player->GetFormID())
 			return RE::BSEventNotifyControl::kContinue;
+
+		// 1. Fortune Hunter (Gold Finder) Universal Perk:
+		// If player looted gold (0x0000000F) from a chest, container, or corpse
+		if (a_event->baseObj == 0x0000000F && a_event->oldContainer != 0) {
+			auto& playerData = ClassManager::GetSingleton()->GetPlayerData();
+			const uint32_t goldRank = std::min(playerData.universalSkills.ranks[16], kMaxUniversalRank);
+			if (goldRank > 0) {
+				// Bonus gold = original gold * (rank * 1%)
+				float bonusFloat = static_cast<float>(a_event->itemCount) * (static_cast<float>(goldRank) * 0.01f);
+				uint32_t bonusGold = static_cast<uint32_t>(bonusFloat);
+				// Random fractional chance for remaining decimal
+				float remainder = bonusFloat - static_cast<float>(bonusGold);
+				if (remainder > 0.0f) {
+					if ((static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) < remainder) {
+						bonusGold += 1;
+					}
+				}
+				if (bonusGold > 0) {
+					static auto* goldObj = RE::TESForm::LookupByID<RE::TESBoundObject>(0x0000000F);
+					if (goldObj) {
+						player->AddObjectToContainer(goldObj, nullptr, static_cast<int32_t>(bonusGold), nullptr);
+						char toast[96];
+						snprintf(toast, sizeof(toast), "Fortune Hunter: +%u bonus gold", bonusGold);
+						PrismaUIManager::Notify(toast, "info");
+					}
+				}
+			}
+		}
+
+		if (!_craftingMenuOpen) return RE::BSEventNotifyControl::kContinue;
 
 		auto* item = RE::TESForm::LookupByID<RE::TESBoundObject>(a_event->baseObj);
 		if (!item) return RE::BSEventNotifyControl::kContinue;
 
 		// Reward only outputs that appeared in the player's inventory while a
-		// crafting station was open. This covers potions and crafted or modified gear.
-		const uint32_t count = static_cast<uint32_t>((std::min)(a_event->itemCount, 5));
-		if (item->As<RE::AlchemyItem>()) {
-			XPManager::GetSingleton()->AddXP(12 * count, "Potion crafted");
+		// crafting station was open. This covers food, potions and crafted or modified gear.
+		// Batch all creations silently until the crafting menu closes.
+		const uint32_t count = static_cast<uint32_t>((std::min)(a_event->itemCount, 50));
+		if (auto* alch = item->As<RE::AlchemyItem>()) {
+			if (alch->IsFood()) {
+				_batchedFoodCount += count;
+				_batchedFoodXP += 10 * count;
+			} else {
+				_batchedPotionsCount += count;
+				_batchedPotionsXP += 12 * count;
+			}
 		} else if (item->As<RE::TESObjectWEAP>() || item->As<RE::TESObjectARMO>()) {
-			XPManager::GetSingleton()->AddXP(10 * count, "Gear crafted or improved");
+			_batchedGearCount += count;
+			_batchedGearXP += 10 * count;
 		}
 		return RE::BSEventNotifyControl::kContinue;
 	}

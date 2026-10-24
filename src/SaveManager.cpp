@@ -35,8 +35,11 @@ namespace Classbound
 			if (version >= 13) io->ReadRecordData(progress.bonusPoints);
 			else progress.bonusPoints = 0;
 			io->ReadRecordData(progress.lastAwardedLevel);
-			const size_t savedRankCount = version >= 12 ? kUniversalAttributeCount : kUniversalAttributeCount - 1;
+			size_t savedRankCount = kUniversalAttributeCount;
+			if (version < 12) savedRankCount = 15;
+			else if (version < 15) savedRankCount = 16;
 			for (size_t i = 0; i < savedRankCount; ++i) io->ReadRecordData(progress.ranks[i]);
+			for (size_t i = savedRankCount; i < kUniversalAttributeCount; ++i) progress.ranks[i] = 0;
 			size_t count = 0; io->ReadRecordData(count);
 			count = std::min<size_t>(count, 64);
 			progress.appliedBonuses.clear();
@@ -143,6 +146,10 @@ namespace Classbound
 				a_intfc->WriteRecordData(av);
 				a_intfc->WriteRecordData(amount);
 			}
+			uint32_t fFocus = static_cast<uint32_t>(f.tacticalFocus);
+			uint32_t fPos = static_cast<uint32_t>(f.tacticalPosition);
+			a_intfc->WriteRecordData(fFocus);
+			a_intfc->WriteRecordData(fPos);
 		}
 
 		// Update Global Character DB
@@ -346,6 +353,13 @@ namespace Classbound
 							a_intfc->ReadRecordData(amount);
 							f.appliedAVBonuses.emplace_back(av, amount);
 						}
+					}
+					if (version >= 14) {
+						uint32_t fFocus = 0, fPos = 0;
+						a_intfc->ReadRecordData(fFocus);
+						a_intfc->ReadRecordData(fPos);
+						f.tacticalFocus = static_cast<TacticalFocus>(fFocus);
+						f.tacticalPosition = static_cast<TacticalPosition>(fPos);
 					}
 
 					uint32_t resolvedFormID = 0;

@@ -6,23 +6,22 @@ ClassBound is an SKSE plugin that adds class selection, shared progression, a un
 
 - **20 playable classes:** Warrior, Knight, Paladin, Thief, Assassin, Archer, Hunter, Marksman, Gunslinger, Crossbowman, Mage, Necromancer, Battlemage, Druid, Elementalist, Merchant, Bard, Alchemist, Blacksmith, and Explorer.
 - **Class progression:** Shared XP advances a ClassBound level from 1 to 100. XP required per level increases with level. The setting to limit ClassBound level to Skyrim character level is enabled by default in settings.
-- **Universal Skill Tree:** Earn 3 skill points per ClassBound level and spend them across 16 shared attributes. Skill ranks are capped at 30. The tree includes Health, Magicka, Stamina, regeneration, physical and spell power, critical chance and damage, defense, resistances, agility, luck, XP gain, and Carry Capacity. Carry Capacity adds 10 carry weight per rank.
-- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold.
+- **Universal Skill Tree:** Earn 3 skill points per ClassBound level and spend them across 16 shared attributes. Skill ranks are capped at 30. A class must be chosen (for player) or assigned (for companions) before investing skill points in the tree. The tree includes Health, Magicka, Stamina, regeneration, physical and spell power, critical chance and damage, defense, resistances, agility, luck, XP gain, and Carry Capacity. Carry Capacity adds 10 carry weight per rank.
+- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Companions cannot spend skill points until a class has been chosen. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold.
 - **Class Codex interface:** PrismaUI pages include Class Codex, Change Class, Character, Skill Tree, Companion Skills, Followers, Bonuses, Statistics, Settings, and Cheat Menu. The legacy SKSE Menu Framework interface remains available.
 - **Level-up feedback:** Level-ups grant the configured skill points, show an in-game notification and character-centered overlay, play the supplied `level-up.mp3`, and apply a visual effect. If custom audio cannot load, Skyrim's level-up sound is used as a fallback.
 - **Progression test controls:** The Cheat Menu can grant XP and skill points to the selected player or active companion, grant levels directly to the player, and has a dedicated Follower Level Test selector with +1 and +5 level actions. Follower tests use the normal companion level-up notification, sound, and visual effect. These actions modify the current save.
-- **Progression settings:** Adjust the shared XP multiplier and toggle automatic XP, level notifications, XP notifications, and the character-level limit.
+- **Progression & Notification settings:** Adjust the shared XP multiplier and toggle automatic XP, level notifications, XP notifications, the character-level limit, and a master switch to toggle all notifications on or off to protect performance during rapid skill allocation.
 - **Save persistence:** Class progression and skill data are stored with the save through SKSE serialization.
 
-## XP rewards currently implemented
-
-- **NPC kills:** A small base reward is granted only when the player or an active companion recently damaged the NPC. Repeated kill events are guarded against duplicate rewards.
+- **NPC & Training Dummy hits:** Combat XP is granted only upon striking an actual target (enemy actor or training/practice dummy/target). Swinging weapons or shooting into thin air does not grant XP. One-Handed, Two-Handed, Archery, Staff strikes, and Blocking grant their respective XP.
+- **Spell use:** Destructive and hostile spells award XP only during actual combat or upon hitting an enemy/target dummy. Out-of-combat air casting of offensive spells is ignored. Utility and buff spells (Healing, Conjuration, Alteration) reward XP when cast intentionally, governed by an internal cooldown.
+- **NPC kills:** A base reward is granted only when the player or an active companion recently damaged the NPC. Repeated kill events are guarded against duplicate rewards.
 - **Completed quests:** A larger reward is granted when a quest completes.
 - **New locations:** Discovering a location grants a small reward.
 - **Harvesting, mining, and fishing:** Valid resource collection grants small rewards.
 - **Crafting and improvement:** Potion crafting and gear crafting or improvement grant XP based on the produced item count.
 - **Successful lockpicking:** A small reward is granted after the lock changes to the unlocked state; merely opening the lockpicking interface does not award XP.
-- **Spell use:** Selected spell actions can grant small rewards with cooldowns to limit repeated gains.
 
 XP is shared between the player and currently active followers in equal party shares (for example, player plus three active followers means roughly one quarter each). Any integer remainder goes to the player. Each character's Experience Gain skill rank modifies that character's share. The global XP multiplier applies to the reward before the party split.
 
