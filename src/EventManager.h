@@ -67,7 +67,6 @@ namespace Classbound
 		std::unordered_map<RE::FormID, DamageRecord> _partyDamagedActors;
 
 		// Druid follower healing cooldown (ms timestamp of last heal tick)
-		uint64_t _druidHealCooldownMs = 0;
 		uint64_t _combatTacticsCooldownMs = 0;
 
 

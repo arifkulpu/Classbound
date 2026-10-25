@@ -127,17 +127,12 @@ namespace Classbound
 		}
 		_inCombatState = currentlyInCombat;
 
-		// Drive companion tactics and druid heals if party or player is in combat
+		// Update companion target priorities during combat.
 		if (currentlyInCombat) {
 			constexpr uint64_t kCombatTacticsCooldownMs = 4000;
 			if ((nowMs - _combatTacticsCooldownMs) >= kCombatTacticsCooldownMs) {
 				_combatTacticsCooldownMs = nowMs;
-				FollowerManager::GetSingleton()->UpdateCombatTactics();
-			}
-			constexpr uint64_t kDruidHealCooldownMs = 6000;
-			if ((nowMs - _druidHealCooldownMs) >= kDruidHealCooldownMs) {
-				_druidHealCooldownMs = nowMs;
-				FollowerManager::GetSingleton()->DruidHealingTick();
+				FollowerManager::GetSingleton()->UpdateFollowerTargeting();
 			}
 		}
 

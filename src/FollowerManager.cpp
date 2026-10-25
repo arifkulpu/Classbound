@@ -419,114 +419,6 @@ namespace Classbound
 		}
 	}
 
-	void FollowerManager::DruidHealingTick()
-	{
-		auto* player = RE::PlayerCharacter::GetSingleton();
-		if (!player) return;
-
-		// Collect Druid followers and all follower actors in current cell
-		struct LiveFollower {
-			RE::Actor* actor;
-			FollowerClassData* data;
-		};
-
-		std::vector<LiveFollower> druidFollowers;
-		std::vector<RE::Actor*> allFollowerActors;
-
-		auto* cell = player->GetParentCell();
-		if (!cell) return;
-
-		for (auto& f : _followers) {
-			if (!f.isActiveFollower) continue;
-			auto* actor = FindFollowerActor(f.formID);
-			if (!actor || actor->IsDead()) continue;
-
-			allFollowerActors.push_back(actor);
-
-			if (f.currentClass == ClassType::Druid) {
-				druidFollowers.push_back({ actor, &f });
-			}
-		}
-
-		if (druidFollowers.empty()) return;
-
-		auto healActor = [](RE::Actor* healer, RE::Actor* target, float healAmount, const char* reason) {
-			auto* avo = target->AsActorValueOwner();
-			if (!avo) return;
-			float maxHP = avo->GetPermanentActorValue(RE::ActorValue::kHealth);
-			float curHP = avo->GetActorValue(RE::ActorValue::kHealth);
-			if (maxHP <= 0.0f) return;
-			if ((curHP / maxHP) < 0.5f) {
-				float newHP = curHP + healAmount;
-				if (newHP > maxHP) newHP = maxHP;
-				avo->SetActorValue(RE::ActorValue::kHealth, newHP);
-				SKSE::log::info("FollowerManager(Druid): {} healed {} for {:.1f} HP ({})",
-					healer->GetName(), target->GetName(), healAmount, reason);
-			}
-		};
-
-		for (auto& [druidActor, druidData] : druidFollowers) {
-			static auto* healSpell = RE::TESForm::LookupByID<RE::SpellItem>(0x00012FC6); // Healing Hands
-			if (!healSpell) {
-				if (auto* dh = RE::TESDataHandler::GetSingleton()) {
-					healSpell = dh->LookupForm<RE::SpellItem>(0x00012FC6, "Skyrim.esm");
-				}
-			}
-
-			// Heal the player
-			{
-				auto* avo = player->AsActorValueOwner();
-				if (avo) {
-					float maxHP = avo->GetPermanentActorValue(RE::ActorValue::kHealth);
-					float curHP = avo->GetActorValue(RE::ActorValue::kHealth);
-					if (maxHP > 0.0f && (curHP / maxHP) < 0.5f) {
-						float healAmt = 25.0f + (static_cast<float>(druidData->classLevel) * 0.5f);
-						float newHP = curHP + healAmt;
-						if (newHP > maxHP) newHP = maxHP;
-						avo->SetActorValue(RE::ActorValue::kHealth, newHP);
-
-						if (healSpell) {
-							if (auto* caster = druidActor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant)) {
-								caster->CastSpellImmediate(healSpell, false, player, 1.0f, false, 0.0f, druidActor);
-							}
-						}
-
-						char toast[128];
-						snprintf(toast, sizeof(toast), "%s healed you for +%.0f HP!", druidActor->GetName(), healAmt);
-						PrismaUIManager::Notify(toast, "success");
-
-						SKSE::log::info("FollowerManager(Druid): {} healed Player for {:.1f} HP",
-							druidActor->GetName(), healAmt);
-					}
-				}
-			}
-
-			// Heal other followers below 60% HP
-			for (auto* followerActor : allFollowerActors) {
-				if (followerActor == druidActor) continue;
-				auto* avo = followerActor->AsActorValueOwner();
-				if (!avo) continue;
-				float maxHP = avo->GetPermanentActorValue(RE::ActorValue::kHealth);
-				float curHP = avo->GetActorValue(RE::ActorValue::kHealth);
-				if (maxHP > 0.0f && (curHP / maxHP) < 0.6f) {
-					float healAmt = 20.0f + (static_cast<float>(druidData->classLevel) * 0.4f);
-					float newHP = curHP + healAmt;
-					if (newHP > maxHP) newHP = maxHP;
-					avo->SetActorValue(RE::ActorValue::kHealth, newHP);
-
-					if (healSpell) {
-						if (auto* caster = druidActor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant)) {
-							caster->CastSpellImmediate(healSpell, false, followerActor, 1.0f, false, 0.0f, druidActor);
-						}
-					}
-
-					SKSE::log::info("FollowerManager(Druid): {} healed {} for {:.1f} HP (party heal)",
-						druidActor->GetName(), followerActor->GetName(), healAmt);
-				}
-			}
-		}
-	}
-
 	void FollowerManager::SetFollowerFocus(uint32_t formID, TacticalFocus focus)
 	{
 		for (auto& f : _followers) {
@@ -538,134 +430,78 @@ namespace Classbound
 		}
 	}
 
-	void FollowerManager::SetFollowerPosition(uint32_t formID, TacticalPosition position)
-	{
-		for (auto& f : _followers) {
-			if (f.formID == formID) {
-				f.tacticalPosition = position;
-				SKSE::log::info("FollowerManager: Set follower {:08X} position to {}", formID, static_cast<uint32_t>(position));
-				break;
-			}
-		}
-	}
-
-	void FollowerManager::UpdateCombatTactics()
+	void FollowerManager::UpdateFollowerTargeting()
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (!player) return;
 
-		// Gather active, alive companions in combat or near combat
-		struct ActiveComp {
-			RE::Actor* actor{ nullptr };
-			FollowerClassData* data{ nullptr };
-			CombatRole role{ CombatRole::None };
-		};
-
-		std::vector<ActiveComp> activeCompanions;
+		std::vector<FollowerClassData*> activeCompanions;
 		bool partyInCombat = player->IsInCombat();
-
-		for (auto& f : _followers) {
-			if (!f.isActiveFollower || f.currentClass == ClassType::None) continue;
-			auto* actor = FindFollowerActor(f.formID);
+		for (auto& follower : _followers) {
+			if (!follower.isActiveFollower || follower.currentClass == ClassType::None) continue;
+			auto* actor = FindFollowerActor(follower.formID);
 			if (!actor || actor->IsDead() || !actor->Is3DLoaded()) continue;
-
 			if (actor->IsInCombat()) partyInCombat = true;
-			activeCompanions.push_back({ actor, &f, f.GetCombatRole() });
+			activeCompanions.push_back(&follower);
 		}
-
 		if (!partyInCombat || activeCompanions.empty()) return;
 
-		// Find all combat enemies in the area
 		auto* processLists = RE::ProcessLists::GetSingleton();
 		if (!processLists) return;
-
 		std::vector<RE::Actor*> enemies;
 		processLists->ForAllActors([&](RE::Actor* other) {
-			if (!other || other == player || other->IsDead() || !other->Is3DLoaded()) {
-				return RE::BSContainer::ForEachResult::kContinue;
-			}
-			if (other->IsHostileToActor(player) || other->IsInCombat()) {
-				if (other->GetPosition().GetDistance(player->GetPosition()) <= 3500.0f) {
-					enemies.push_back(other);
-				}
+			if (!other || other == player || other->IsDead() || !other->Is3DLoaded()) return RE::BSContainer::ForEachResult::kContinue;
+			if ((other->IsHostileToActor(player) || other->IsInCombat()) &&
+				other->GetPosition().GetDistance(player->GetPosition()) <= 3500.0f) {
+				enemies.push_back(other);
 			}
 			return RE::BSContainer::ForEachResult::kContinue;
 		});
-
 		if (enemies.empty()) return;
 
-		// Resolve player target (crosshair or combat target)
 		RE::Actor* playerTarget = nullptr;
 		if (auto* pick = RE::CrosshairPickData::GetSingleton()) {
-			if (auto targetRef = pick->target.get()) {
-				playerTarget = targetRef->As<RE::Actor>();
-			}
+			if (auto targetRef = pick->target.get()) playerTarget = targetRef->As<RE::Actor>();
 		}
-		if (!playerTarget) {
-			playerTarget = player->GetActorRuntimeData().currentCombatTarget.get().get();
-		}
+		if (!playerTarget) playerTarget = player->GetActorRuntimeData().currentCombatTarget.get().get();
 
-		// Helper to stagger an actor (used by Warrior War Cry, Knight/Paladin shield rush)
-		auto staggerActor = [](RE::Actor* target, float magnitude, RE::Actor* aggressor) {
-			if (!target) return;
-			using func_t = void(RE::Actor*, float, RE::Actor*);
-			static REL::Relocation<func_t> staggerFunc{ RELOCATION_ID(36700, 37710) };
-			staggerFunc(target, std::clamp(magnitude, 0.0f, 1.0f), aggressor);
-		};
-
-		// 1. Process Tactical Focus for each follower
-		for (auto& comp : activeCompanions) {
-			auto* compActor = comp.actor;
-			auto* compData = comp.data;
-
+		for (auto* follower : activeCompanions) {
+			auto* actor = FindFollowerActor(follower->formID);
+			if (!actor) continue;
 			RE::Actor* bestTarget = nullptr;
-
-			switch (compData->tacticalFocus) {
+			switch (follower->tacticalFocus) {
 			case TacticalFocus::ProtectPlayer: {
-				// Find enemy currently targeting player and closest to player
-				float minDist = 999999.0f;
+				float nearestDistance = 999999.0f;
 				for (auto* enemy : enemies) {
-					auto enemyTarget = enemy->GetActorRuntimeData().currentCombatTarget.get().get();
-					if (enemyTarget == player) {
-						float d = enemy->GetPosition().GetDistance(player->GetPosition());
-						if (d < minDist) {
-							minDist = d;
-							bestTarget = enemy;
-						}
+					if (enemy->GetActorRuntimeData().currentCombatTarget.get().get() != player) continue;
+					const float distance = enemy->GetPosition().GetDistance(player->GetPosition());
+					if (distance < nearestDistance) {
+						nearestDistance = distance;
+						bestTarget = enemy;
 					}
 				}
 				break;
 			}
-			case TacticalFocus::TargetPlayerFocus: {
-				if (playerTarget && !playerTarget->IsDead()) {
-					bestTarget = playerTarget;
-				}
+			case TacticalFocus::TargetPlayerFocus:
+				if (playerTarget && !playerTarget->IsDead()) bestTarget = playerTarget;
 				break;
-			}
-			case TacticalFocus::TargetCasters: {
-				// Prioritize enemy casting spells or holding staff/bow
+			case TacticalFocus::TargetCasters:
 				for (auto* enemy : enemies) {
-					if (enemy->IsDead()) continue;
 					auto* left = enemy->GetEquippedObject(true);
 					auto* right = enemy->GetEquippedObject(false);
-					bool isCaster = (left && left->Is(RE::FormType::Spell)) ||
-					                (right && right->Is(RE::FormType::Spell)) ||
-					                (right && right->As<RE::TESObjectWEAP>() && right->As<RE::TESObjectWEAP>()->IsStaff());
-					if (isCaster) {
-						bestTarget = enemy;
-						break;
-					}
+					const bool isCaster = (left && left->Is(RE::FormType::Spell)) ||
+						(right && right->Is(RE::FormType::Spell)) ||
+						(right && right->As<RE::TESObjectWEAP>() && right->As<RE::TESObjectWEAP>()->IsStaff());
+					if (isCaster) { bestTarget = enemy; break; }
 				}
 				break;
-			}
 			case TacticalFocus::TargetWeakest: {
-				float lowestHp = 999999.0f;
+				float lowestHealth = 999999.0f;
 				for (auto* enemy : enemies) {
-					if (enemy->IsDead()) continue;
-					auto* enemyAvo = enemy->AsActorValueOwner();
-					float curHp = enemyAvo ? enemyAvo->GetActorValue(RE::ActorValue::kHealth) : 0.0f;
-					if (curHp > 0.0f && curHp < lowestHp) {
-						lowestHp = curHp;
+					auto* values = enemy->AsActorValueOwner();
+					const float health = values ? values->GetActorValue(RE::ActorValue::kHealth) : 0.0f;
+					if (health > 0.0f && health < lowestHealth) {
+						lowestHealth = health;
 						bestTarget = enemy;
 					}
 				}
@@ -674,260 +510,15 @@ namespace Classbound
 			default:
 				break;
 			}
-
-			// If a specific tactical target was found and follower is not already fighting them, engage
-			if (bestTarget && compActor->GetActorRuntimeData().currentCombatTarget.get().get() != bestTarget) {
-				if (auto* ctrl = compActor->GetActorRuntimeData().combatController) {
-					ctrl->targetHandle = bestTarget->GetHandle();
-					ctrl->previousTargetHandle = compActor->GetActorRuntimeData().currentCombatTarget;
+			if (bestTarget && actor->GetActorRuntimeData().currentCombatTarget.get().get() != bestTarget) {
+				if (auto* controller = actor->GetActorRuntimeData().combatController) {
+					controller->targetHandle = bestTarget->GetHandle();
+					controller->previousTargetHandle = actor->GetActorRuntimeData().currentCombatTarget;
 				}
-				compActor->GetActorRuntimeData().currentCombatTarget = bestTarget->GetHandle();
-			}
-
-			// 2. Process Tactical Position (Formation)
-			if (compData->tacticalPosition == TacticalPosition::GuardPlayer) {
-				// Guard Player: stay within close proximity (under 500 units) to player
-				float distToPlayer = compActor->GetPosition().GetDistance(player->GetPosition());
-				if (distToPlayer > 650.0f) {
-					// Disengage distant enemies and pull back to player
-					for (auto* enemy : enemies) {
-						if (enemy->GetPosition().GetDistance(player->GetPosition()) <= 450.0f) {
-							if (auto* ctrl = compActor->GetActorRuntimeData().combatController) {
-								ctrl->targetHandle = enemy->GetHandle();
-							}
-							compActor->GetActorRuntimeData().currentCombatTarget = enemy->GetHandle();
-							break;
-						}
-					}
-				}
-			} else if (compData->tacticalPosition == TacticalPosition::Backline) {
-				// Backline: if enemies are within 250 units, push them back with light stagger to keep distance
-				for (auto* enemy : enemies) {
-					if (!enemy->IsDead() && enemy->GetPosition().GetDistance(compActor->GetPosition()) <= 250.0f) {
-						staggerActor(enemy, 0.5f, compActor);
-						break;
-					}
-				}
-			}
-		}
-
-		auto now = std::chrono::steady_clock::now();
-		uint64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-
-		// 2. Class Combat Role Specials & AI Behaviors
-		for (auto& comp : activeCompanions) {
-			auto* compActor = comp.actor;
-			auto* compData = comp.data;
-			auto role = comp.role;
-			const uint32_t compFormID = compData->formID;
-
-			// Cooldown check for role special abilities per companion
-			uint64_t lastSpecialMs = _followerSpecialCooldowns[compFormID];
-
-			// A. TANK (Paladin, Knight): Bodyguard Interpose & Taunt
-			if (role == CombatRole::Tank) {
-				auto* pAvo = player->AsActorValueOwner();
-				float playerCurHp = pAvo ? pAvo->GetActorValue(RE::ActorValue::kHealth) : 100.0f;
-				float playerMaxHp = pAvo ? pAvo->GetPermanentActorValue(RE::ActorValue::kHealth) : 100.0f;
-				bool playerInDanger = (playerCurHp / (playerMaxHp > 0.0f ? playerMaxHp : 1.0f)) < 0.40f;
-
-				// Bodyguard Interpose (Emergency Save): if player HP is < 40% and cooldown passed (20s)
-				if (playerInDanger && (nowMs - lastSpecialMs >= 20000)) {
-					int tauntedEnemies = 0;
-					for (auto* enemy : enemies) {
-						if (enemy->IsDead()) continue;
-						float dToPlayer = enemy->GetPosition().GetDistance(player->GetPosition());
-						if (dToPlayer < 750.0f) {
-							if (auto* ctrl = enemy->GetActorRuntimeData().combatController) {
-								ctrl->targetHandle = compActor->GetHandle();
-							}
-							enemy->GetActorRuntimeData().currentCombatTarget = compActor->GetHandle();
-							staggerActor(enemy, 0.4f, compActor);
-							tauntedEnemies++;
-						}
-					}
-					if (tauntedEnemies > 0) {
-						_followerSpecialCooldowns[compFormID] = nowMs;
-						auto* compAvo = compActor->AsActorValueOwner();
-						if (compAvo) {
-							compAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, 25.0f);
-						}
-
-						char toast[128];
-						snprintf(toast, sizeof(toast), "%s interposed to protect you!", compActor->GetName());
-						PrismaUIManager::Notify(toast, "warning");
-
-						SKSE::log::info("FollowerManager(Tank): {} executed Bodyguard Interpose for Player!", compActor->GetName());
-					}
-				}
-				// Tactical Challenge (Controlled Taunt): only if follower has ProtectPlayer focus or tank has high health,
-				// every 25 seconds max, and ONLY redirects enemies that are currently actively targeting the player
-				else if (compData->tacticalFocus == TacticalFocus::ProtectPlayer && (nowMs - lastSpecialMs >= 25000)) {
-					for (auto* enemy : enemies) {
-						if (enemy->IsDead()) continue;
-						auto enemyTarget = enemy->GetActorRuntimeData().currentCombatTarget.get().get();
-						if (enemyTarget == player) {
-							float dToTank = enemy->GetPosition().GetDistance(compActor->GetPosition());
-							if (dToTank < 600.0f) {
-								if (auto* ctrl = enemy->GetActorRuntimeData().combatController) {
-									ctrl->targetHandle = compActor->GetHandle();
-								}
-								enemy->GetActorRuntimeData().currentCombatTarget = compActor->GetHandle();
-								_followerSpecialCooldowns[compFormID] = nowMs;
-
-								char toast[128];
-								snprintf(toast, sizeof(toast), "%s taunted enemies away from you!", compActor->GetName());
-								PrismaUIManager::Notify(toast, "info");
-
-								SKSE::log::info("FollowerManager(Tank): {} taunted enemy off Player!", compActor->GetName());
-								break; // Taunt one target at a time, not constant blanket spam
-							}
-						}
-					}
-				}
-			}
-			// B. BRUISER (Warrior): War Cry (AoE Stagger on nearby enemies, 30s cooldown)
-			else if (role == CombatRole::Bruiser) {
-				if (nowMs - lastSpecialMs >= 30000) {
-					int enemiesNear = 0;
-					for (auto* enemy : enemies) {
-						if (enemy->IsDead()) continue;
-						if (enemy->GetPosition().GetDistance(compActor->GetPosition()) <= 400.0f) {
-							enemiesNear++;
-						}
-					}
-					if (enemiesNear >= 2) {
-						_followerSpecialCooldowns[compFormID] = nowMs;
-						for (auto* enemy : enemies) {
-							if (enemy->IsDead()) continue;
-							if (enemy->GetPosition().GetDistance(compActor->GetPosition()) <= 400.0f) {
-								staggerActor(enemy, 0.6f, compActor);
-							}
-						}
-						auto* avo = compActor->AsActorValueOwner();
-						if (avo) avo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, 25.0f);
-
-						char toast[128];
-						snprintf(toast, sizeof(toast), "%s unleashed a War Cry! Enemies staggered!", compActor->GetName());
-						PrismaUIManager::Notify(toast, "warning");
-
-						SKSE::log::info("FollowerManager(Bruiser): {} used War Cry, staggering {} enemies!", compActor->GetName(), enemiesNear);
-					}
-				}
-			}
-			// C. SKIRMISHER (Thief, Assassin): Off-balance strike (15s cooldown)
-			else if (role == CombatRole::Skirmisher) {
-				if (nowMs - lastSpecialMs >= 15000) {
-					auto* curTarget = compActor->GetActorRuntimeData().currentCombatTarget.get().get();
-					if (curTarget && !curTarget->IsDead()) {
-						float dist = compActor->GetPosition().GetDistance(curTarget->GetPosition());
-						if (dist < 250.0f) {
-							_followerSpecialCooldowns[compFormID] = nowMs;
-							staggerActor(curTarget, 0.5f, compActor);
-
-							char toast[128];
-							snprintf(toast, sizeof(toast), "%s struck %s off-balance!", compActor->GetName(), curTarget->GetName());
-							PrismaUIManager::Notify(toast, "info");
-
-							SKSE::log::info("FollowerManager(Skirmisher): {} struck {} off balance!", compActor->GetName(), curTarget->GetName());
-						}
-					}
-				}
-			}
-			// D. RANGED DPS (Archer, Hunter, Marksman, Crossbowman): Pin Down / Crippling Shot (20s cooldown)
-			else if (role == CombatRole::RangedDPS) {
-				if (nowMs - lastSpecialMs >= 20000) {
-					auto* curTarget = compActor->GetActorRuntimeData().currentCombatTarget.get().get();
-					if (curTarget && !curTarget->IsDead()) {
-						float dist = compActor->GetPosition().GetDistance(curTarget->GetPosition());
-						if (dist >= 350.0f && dist <= 1600.0f) {
-							_followerSpecialCooldowns[compFormID] = nowMs;
-							staggerActor(curTarget, 0.4f, compActor);
-							auto* targetAvo = curTarget->AsActorValueOwner();
-							if (targetAvo) {
-								targetAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, -30.0f);
-							}
-
-							char toast[128];
-							snprintf(toast, sizeof(toast), "%s pinned down %s!", compActor->GetName(), curTarget->GetName());
-							PrismaUIManager::Notify(toast, "info");
-
-							SKSE::log::info("FollowerManager(RangedDPS): {} pinned down {}", compActor->GetName(), curTarget->GetName());
-						}
-					}
-				}
-			}
-			// D. CASTER (Mage, Elementalist, Necromancer, Battlemage): Ward emergency protection on player (25s cooldown)
-			else if (role == CombatRole::CasterDPS) {
-				if (nowMs - lastSpecialMs >= 25000) {
-					auto* pAvo = player->AsActorValueOwner();
-					float playerCurHp = pAvo ? pAvo->GetActorValue(RE::ActorValue::kHealth) : 100.0f;
-					float playerMaxHp = pAvo ? pAvo->GetPermanentActorValue(RE::ActorValue::kHealth) : 100.0f;
-					if ((playerCurHp / (playerMaxHp > 0.0f ? playerMaxHp : 1.0f)) < 0.45f) {
-						_followerSpecialCooldowns[compFormID] = nowMs;
-						if (pAvo) {
-							pAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, 20.0f + (static_cast<float>(compData->classLevel) * 0.5f));
-						}
-
-						// Cast visible Oakflesh / Protective Ward spell on player so visual armor effect & sound plays
-						static auto* wardSpell = RE::TESForm::LookupByID<RE::SpellItem>(0x0005AD5C); // Oakflesh (Armor spell with visible green dragonhide/glow effect)
-						if (!wardSpell) {
-							if (auto* dh = RE::TESDataHandler::GetSingleton()) {
-								wardSpell = dh->LookupForm<RE::SpellItem>(0x0005AD5C, "Skyrim.esm");
-							}
-						}
-						if (wardSpell) {
-							if (auto* caster = compActor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant)) {
-								caster->CastSpellImmediate(wardSpell, false, player, 1.0f, false, 0.0f, compActor);
-							}
-						}
-
-						// Display UI notification so player clearly knows who shielded them
-						char toast[128];
-						snprintf(toast, sizeof(toast), "%s cast Protective Ward on you!", compActor->GetName());
-						PrismaUIManager::Notify(toast, "success");
-
-						SKSE::log::info("FollowerManager(Caster): {} cast protective ward on player!", compActor->GetName());
-					}
-				}
-			}
-			// F. SUPPORT (Bard, Merchant, Alchemist, Blacksmith, Explorer): Party Rally (30s cooldown)
-			else if (role == CombatRole::Support) {
-				if (nowMs - lastSpecialMs >= 30000) {
-					_followerSpecialCooldowns[compFormID] = nowMs;
-					auto* pAvo = player->AsActorValueOwner();
-					if (pAvo) {
-						pAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, 25.0f);
-						pAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kMagicka, 20.0f);
-					}
-					for (auto& allyComp : activeCompanions) {
-						if (auto* allyAvo = allyComp.actor->AsActorValueOwner()) {
-							allyAvo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, 25.0f);
-						}
-					}
-
-					static auto* rallySpell = RE::TESForm::LookupByID<RE::SpellItem>(0x0004DEE8); // Courage
-					if (!rallySpell) {
-						if (auto* dh = RE::TESDataHandler::GetSingleton()) {
-							rallySpell = dh->LookupForm<RE::SpellItem>(0x0004DEE8, "Skyrim.esm");
-						}
-					}
-					if (rallySpell) {
-						if (auto* caster = compActor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant)) {
-							caster->CastSpellImmediate(rallySpell, false, player, 1.0f, false, 0.0f, compActor);
-						}
-					}
-
-					char toast[128];
-					snprintf(toast, sizeof(toast), "%s rallied the party! (+Stamina & Magicka)", compActor->GetName());
-					PrismaUIManager::Notify(toast, "success");
-
-					SKSE::log::info("FollowerManager(Support): {} rallied the party!", compActor->GetName());
-				}
+				actor->GetActorRuntimeData().currentCombatTarget = bestTarget->GetHandle();
 			}
 		}
 	}
-
 	void FollowerManager::ClearFollowers()
 	{
 		_followers.clear();

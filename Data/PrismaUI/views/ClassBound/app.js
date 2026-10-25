@@ -55,11 +55,7 @@
     return `<div class="character-overview"><header class="character-banner" style="--character-accent:${accents[c.category]||'#d8b66a'}"><img src="${classBannerImage(c)}" alt="${esc(c.name)} artwork"><div class="character-banner-shade"></div><div class="character-banner-copy"><span class="eyebrow">CLASSBOUND CHARACTER RECORD</span><h3>${esc(c.name)}</h3><p>${esc(c.playstyle||categoryNames[c.category]||'Adventurer')}</p></div><div class="character-banner-sigil">${esc(sigils[c.category]||'✦')}</div></header><section class="character-level-card"><div class="character-level-seal"><span>LEVEL</span><b>${level}</b><i>✦</i></div><div class="character-level-info"><div class="character-level-heading"><div><span class="eyebrow gold">YOUR JOURNEY</span><h4>${level>=100?'Maximum level reached':`Level ${level} progression`}</h4></div><strong>${level>=100?'MAX':`${Math.floor(pct)}%`}</strong></div><div class="character-xp-caption"><span>${xp.toLocaleString()} XP earned</span><b>${level>=100?'Level cap reached':`${remaining.toLocaleString()} XP to next level`}</b><span>${required.toLocaleString()} XP</span></div><div class="character-xp-track"><i style="width:${pct}%"></i></div><div class="character-level-foot"><span>CLASS LEVEL <b>${level} / 100</b></span><span>SHARED XP <b>${xp.toLocaleString()} / ${required.toLocaleString()}</b></span></div></div></section><div class="character-detail-grid"><section class="character-profile-panel"><div class="character-panel-heading"><span class="character-panel-icon">⚔</span><div><span class="eyebrow">COMBAT PROFILE</span><h4>Class attributes</h4></div></div><div class="character-stat-list">${stats}</div><p class="character-description">${esc(c.description||'Your class defines your path through Skyrim.')}</p></section><section class="character-growth-panel"><div class="character-panel-heading"><span class="character-panel-icon">✧</span><div><span class="eyebrow">PERSONAL GROWTH</span><h4>Universal skill points</h4></div></div><div class="character-point-pair"><div><small>AVAILABLE</small><b>${Number(skillPoints.available||0)}</b></div><div><small>INVESTED</small><b>${Number(skillPoints.spent||0)}</b></div><div><small>EARNED</small><b>${Number(skillPoints.earned||0)}</b></div></div><p class="character-description">Earn 3 universal points each level and shape your own build in the Skill Tree.</p><div class="character-status-line"><span class="status-dot"></span>${state.hasTrainer?'A class trainer is available nearby.':state.currentClass?'Your class is active.':'Your first class is free.'}</div></section></div></div>`;
   }
 
-  const combatRoleNames={0:'None',1:'Tank (Taunt & Bodyguard)',2:'Bruiser (War Cry & Staggers)',3:'Skirmisher (Flank & Disarm)',4:'Ranged DPS (Volley & Snipe)',5:'Caster DPS (Ward & Burst)',6:'Healer (Healing Pulse)',7:'Support (Party Rally)'};
-  const focusNames={0:'Free Combat',1:'Protect Player (Bodyguard)',2:'Focus Player Target',3:'Prioritize Casters / Archers',4:'Finish Weakest Enemies'};
-  const positionNames={0:'Frontline',1:'Guard Player',2:'Backline / Hold Back'};
   const focusDisplayNames={0:'⚔ Free Combat',1:'🛡 Protect Player',2:'🎯 Focus Player Target',3:'⚡ Prioritize Casters',4:'💀 Finish Weakest'};
-  const positionDisplayNames={0:'⚔ Frontline',1:'🛡 Guard Player',2:'🏹 Backline'};
 
   function renderFollowers(){
     if(!state.followers?.length)return card('No companions found','Recruit a humanoid follower and reopen this page while they are nearby.');
@@ -67,9 +63,7 @@
       const selected=Number(followerClassDrafts[f.formID]??f.classID??0);
       const role=state.classes.find(c=>Number(c.id)===selected);
       const xpPct=Math.min(100,100*Number(f.xp||0)/Number(f.requiredXP||100));
-      const roleName=combatRoleNames[f.combatRole]||'None';
       const fFocus=Number(f.tacticalFocus||0);
-      const fPos=Number(f.tacticalPosition||0);
       return `<article class="follower-card">
         <header class="follower-card-head">
           <img class="follower-portrait" src="${followerPortrait(f)}" alt="${esc(f.race||'Nord')} ${esc(f.sex||'male')} portrait">
@@ -80,7 +74,7 @@
           <span class="follower-class-badge">${esc(f.className||'UNASSIGNED')}</span>
         </header>
         <div class="follower-role-preview">
-          ${role?`<img src="${classImage(role)}" alt=""><span><small>CLASS & COMBAT ROLE</small><b>${esc(role.name)}</b><em>${esc(roleName)}</em></span>`:'<span class="role-unassigned">Select a class to assign combat role and tactics</span>'}
+          ${role?`<img src="${classImage(role)}" alt=""><span><small>CLASS</small><b>${esc(role.name)}</b></span>`:'<span class="role-unassigned">Select a class to view companion progression</span>'}
         </div>
         <div class="follower-progression">
           <div class="progress-caption"><span>ADVENTURER PROGRESS</span><b>${Number(f.xp||0)} / ${Number(f.requiredXP||100)} XP</b></div>
@@ -90,8 +84,7 @@
         <div class="follower-tactics-box">
           <div class="tactics-box-header">
             <span class="tactics-box-icon">⚔</span>
-            <span class="tactics-box-title">TACTICAL DIRECTIVES</span>
-            <span class="tactics-box-role">${esc(roleName)}</span>
+            <span class="tactics-box-title">COMPANION TARGETING</span>
           </div>
           <div class="tactics-controls-grid">
             <div class="tactics-field">
@@ -108,7 +101,7 @@
                   </button>
                   <button type="button" class="formation-btn ${fFocus===1?'active':''}" data-priority-focus="1" data-form-id="${f.formID}">
                     <span class="formation-icon">🛡</span>
-                    <span class="formation-text"><b>Protect Player</b><small>Bodyguard / Intercept threats</small></span>
+                    <span class="formation-text"><b>Protect Player</b><small>Prioritize enemies attacking you</small></span>
                   </button>
                   <button type="button" class="formation-btn ${fFocus===2?'active':''}" data-priority-focus="2" data-form-id="${f.formID}">
                     <span class="formation-icon">🎯</span>
@@ -121,29 +114,6 @@
                   <button type="button" class="formation-btn ${fFocus===4?'active':''}" data-priority-focus="4" data-form-id="${f.formID}">
                     <span class="formation-icon">💀</span>
                     <span class="formation-text"><b>Finish Weakest</b><small>Execute lowest health enemies</small></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="tactics-field">
-              <span class="tactics-field-label">COMBAT FORMATION</span>
-              <div class="tactics-dropdown" data-dropdown="pos-${f.formID}">
-                <button type="button" class="tactics-dropdown-trigger" data-tactics-toggle="pos-${f.formID}">
-                  <span class="tactics-selected-value">${esc(positionDisplayNames[fPos]||'⚔ Frontline')}</span>
-                  <span class="tactics-dropdown-arrow">▾</span>
-                </button>
-                <div class="tactics-dropdown-menu" id="menu-pos-${f.formID}" hidden>
-                  <button type="button" class="formation-btn ${fPos===0?'active':''}" data-formation-pos="0" data-form-id="${f.formID}">
-                    <span class="formation-icon">⚔</span>
-                    <span class="formation-text"><b>Frontline</b><small>Charge & Engage</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fPos===1?'active':''}" data-formation-pos="1" data-form-id="${f.formID}">
-                    <span class="formation-icon">🛡</span>
-                    <span class="formation-text"><b>Guard Player</b><small>Tight Formation</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fPos===2?'active':''}" data-formation-pos="2" data-form-id="${f.formID}">
-                    <span class="formation-icon">🏹</span>
-                    <span class="formation-text"><b>Backline</b><small>Distance / Hold Back</small></span>
                   </button>
                 </div>
               </div>
@@ -278,24 +248,6 @@
       send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalFocus:val}));
       return;
     }
-    const formationBtn=e.target.closest('[data-formation-pos]');
-    if(formationBtn){
-      const formID=Number(formationBtn.dataset.formId);
-      const val=Number(formationBtn.dataset.formationPos);
-      formationBtn.parentElement.querySelectorAll('.formation-btn').forEach(b=>b.classList.remove('active'));
-      formationBtn.classList.add('active');
-      const follower=state.followers.find(f=>Number(f.formID)===formID);
-      if(follower)follower.tacticalPosition=val;
-      const dropdown=formationBtn.closest('.tactics-dropdown');
-      if(dropdown){
-        dropdown.querySelector('.tactics-selected-value').textContent=positionDisplayNames[val]||'⚔ Frontline';
-        dropdown.classList.remove('open');
-        const menu=dropdown.querySelector('.tactics-dropdown-menu');
-        if(menu)menu.hidden=true;
-      }
-      send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalPosition:val}));
-      return;
-    }
     const button=e.target.closest('[data-test-action]');if(!button)return;send('cbTestAction',JSON.stringify({action:button.dataset.testAction,amount:Number(button.dataset.amount),formID:Number((button.dataset.testAction==='follower-levels'?$('test-follower-subject'):$('test-subject'))?.value||0)}));});
   $('dynamic-content').addEventListener('change',e=>{if(e.target.id==='test-subject'){selectedTestSubject=Number(e.target.value||0);return;}});
   $('dynamic-content').addEventListener('change',e=>{
@@ -305,8 +257,6 @@
       const val=Number(e.target.value);
       if(tactics.dataset.followerTactics==='focus'){
         send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalFocus:val}));
-      }else if(tactics.dataset.followerTactics==='pos'){
-        send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalPosition:val}));
       }
       return;
     }

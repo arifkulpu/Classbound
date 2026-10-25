@@ -147,7 +147,8 @@ namespace Classbound
 				a_intfc->WriteRecordData(amount);
 			}
 			uint32_t fFocus = static_cast<uint32_t>(f.tacticalFocus);
-			uint32_t fPos = static_cast<uint32_t>(f.tacticalPosition);
+			// Reserved for the removed follower formation setting; keep the serialized record layout stable.
+			uint32_t fPos = 0;
 			a_intfc->WriteRecordData(fFocus);
 			a_intfc->WriteRecordData(fPos);
 		}
@@ -359,7 +360,7 @@ namespace Classbound
 						a_intfc->ReadRecordData(fFocus);
 						a_intfc->ReadRecordData(fPos);
 						f.tacticalFocus = static_cast<TacticalFocus>(fFocus);
-						f.tacticalPosition = static_cast<TacticalPosition>(fPos);
+						(void)fPos;
 					}
 
 					uint32_t resolvedFormID = 0;

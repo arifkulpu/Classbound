@@ -560,9 +560,7 @@ namespace Classbound
 				{"classID", static_cast<uint32_t>(follower.currentClass)}, {"className", followerClass ? followerClass->name : "Unassigned"},
 				{"icon", followerClass ? followerClass->icon : "✦"}, {"level", follower.classLevel}, {"xp", follower.classXP},
 				{"requiredXP", XPManager::GetSingleton()->GetXPForNextLevel(follower.classLevel)}, {"active", follower.isActiveFollower},
-				{"combatRole", static_cast<uint32_t>(follower.GetCombatRole())},
-				{"tacticalFocus", static_cast<uint32_t>(follower.tacticalFocus)},
-				{"tacticalPosition", static_cast<uint32_t>(follower.tacticalPosition)}};
+				{"tacticalFocus", static_cast<uint32_t>(follower.tacticalFocus)}};
 			followerEntry["universalSkills"] = makeSkills(follower.universalSkills);
 			if (follower.isActiveFollower) state["followers"].push_back(std::move(followerEntry));
 		}
@@ -666,15 +664,6 @@ namespace Classbound
 				if (auto* tasks = SKSE::GetTaskInterface()) {
 					tasks->AddTask([formID, focus]() {
 						FollowerManager::GetSingleton()->SetFollowerFocus(formID, static_cast<TacticalFocus>(focus));
-						GetSingleton()->SendState();
-					});
-				}
-			}
-			if (parsed.contains("tacticalPosition")) {
-				uint32_t pos = parsed["tacticalPosition"].get<uint32_t>();
-				if (auto* tasks = SKSE::GetTaskInterface()) {
-					tasks->AddTask([formID, pos]() {
-						FollowerManager::GetSingleton()->SetFollowerPosition(formID, static_cast<TacticalPosition>(pos));
 						GetSingleton()->SendState();
 					});
 				}

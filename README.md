@@ -7,7 +7,7 @@ ClassBound is an SKSE plugin that adds class selection, shared progression, a un
 - **20 playable classes:** Warrior, Knight, Paladin, Thief, Assassin, Archer, Hunter, Marksman, Gunslinger, Crossbowman, Mage, Necromancer, Battlemage, Druid, Elementalist, Merchant, Bard, Alchemist, Blacksmith, and Explorer.
 - **Class progression:** Shared XP advances a ClassBound level from 1 to 100. XP required per level increases with level. The setting to limit ClassBound level to Skyrim character level is enabled by default in settings.
 - **Universal Skill Tree:** Earn 3 skill points per ClassBound level and spend them across 16 shared attributes. Skill ranks are capped at 30. A class must be chosen (for player) or assigned (for companions) before investing skill points in the tree. The tree includes Health, Magicka, Stamina, regeneration, physical and spell power, critical chance and damage, defense, resistances, agility, luck, XP gain, and Carry Capacity. Carry Capacity adds 10 carry weight per rank.
-- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Companions cannot spend skill points until a class has been chosen. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold.
+- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Companions cannot spend skill points until a class has been chosen. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold. Followers use Skyrim's normal combat and formation behavior; ClassBound does not grant them custom combat abilities or formation commands. Target priority can still be selected in the Followers page.
 - **Class Codex interface:** PrismaUI pages include Class Codex, Change Class, Character, Skill Tree, Companion Skills, Followers, Bonuses, Statistics, Settings, and Cheat Menu. The legacy SKSE Menu Framework interface remains available.
 - **Level-up feedback:** Level-ups grant the configured skill points, show an in-game notification and character-centered overlay, play the supplied `level-up.mp3`, and apply a visual effect. If custom audio cannot load, Skyrim's level-up sound is used as a fallback.
 - **Progression test controls:** The Cheat Menu can grant XP and skill points to the selected player or active companion, grant levels directly to the player, and has a dedicated Follower Level Test selector with +1 and +5 level actions. Follower tests use the normal companion level-up notification, sound, and visual effect. These actions modify the current save.
@@ -32,13 +32,20 @@ XP is shared between the player and currently active followers in equal party sh
 - The Shift+V shortcut and PrismaUI Codex require PrismaUI and SKSE Menu Framework to be installed and loaded. Without PrismaUI, the legacy SKSE Menu Framework settings interface remains available.
 - The Cheat Menu is a page in the PrismaUI Codex. Treat its XP, skill point, and level buttons as save-changing debug tools.
 
-## Requirements
+## Required mods
 
-- Skyrim Special Edition / Anniversary Edition with a runtime supported by the installed plugin build.
-- SKSE64 matching the game's runtime.
-- Address Library for SKSE Plugins.
-- SKSE Menu Framework.
-- PrismaUI for the PrismaUI Codex and Shift+V hotkey.
+Install these for the in-game ClassBound menus and SKSE plugin:
+
+- **Skyrim Special Edition / Anniversary Edition** with a runtime supported by the installed ClassBound DLL.
+- **[SKSE64](https://skse.silverlock.org/)** matching the exact game runtime. Start Skyrim through the SKSE loader.
+- **[Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)** with files matching the game runtime.
+- **[SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352)** to register and open the ClassBound menus. Current framework releases (3.15 and later) also require **[ImGui Icons](https://www.nexusmods.com/skyrimspecialedition/mods/114790)**.
+
+### Optional interface framework
+
+- **[Prisma UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)** enables the full Class Codex, the Shift+V shortcut, and PrismaUI overlays. Without it, the legacy ImGui settings menu remains available through SKSE Menu Framework.
+- Prisma UI requires **[Media Keys Fix SKSE](https://www.nexusmods.com/skyrimspecialedition/mods/92948)** (or [Keyboard Shortcuts Fix](https://www.nexusmods.com/skyrimspecialedition/mods/3620)) and the **[Microsoft Visual C++ 2022 Redistributable x64](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)**.
+- King Core is optional; it is only needed for integrations that use ClassBound's King Core API.
 
 ## Mod Organizer 2 installation
 

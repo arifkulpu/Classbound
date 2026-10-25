@@ -15,18 +15,6 @@ namespace Classbound
 		Social = 4
 	};
 
-	enum class CombatRole : uint32_t
-	{
-		None = 0,
-		Tank,         // Knight, Paladin: Taunt, Bodyguard, Armor Brace
-		Bruiser,      // Warrior: Heavy staggers, War Cry AoE
-		Skirmisher,   // Thief, Assassin: Backstab/Flank, Disarm
-		RangedDPS,    // Archer, Hunter, Marksman, Gunslinger, Crossbowman: Volley, Focus Caster
-		CasterDPS,    // Mage, Elementalist, Necromancer, Battlemage: Ward shield, Spell burst
-		Healer,       // Druid: Party Healing aura, Rejuvenation
-		Support       // Bard, Merchant, Alchemist, Blacksmith, Explorer: Morale / Stamina rally
-	};
-
 	enum class TacticalFocus : uint32_t
 	{
 		Free = 0,             // Free choice / default AI
@@ -34,13 +22,6 @@ namespace Classbound
 		TargetPlayerFocus = 2,// Focus what player is attacking
 		TargetCasters = 3,    // Prioritize enemy mages & archers
 		TargetWeakest = 4     // Finish low HP enemies
-	};
-
-	enum class TacticalPosition : uint32_t
-	{
-		Frontline = 0,
-		GuardPlayer = 1,
-		Backline = 2
 	};
 
 	enum class ClassType : uint32_t
@@ -177,43 +158,7 @@ namespace Classbound
 		// Track applied AV bonuses to this follower
 		std::vector<std::pair<uint32_t, float>> appliedAVBonuses;
 
-		// Tactical combat directives
+		// Optional target priority for companion AI
 		TacticalFocus    tacticalFocus{ TacticalFocus::Free };
-		TacticalPosition tacticalPosition{ TacticalPosition::Frontline };
-
-		CombatRole GetCombatRole() const
-		{
-			switch (currentClass) {
-			case ClassType::Knight:
-			case ClassType::Paladin:
-				return CombatRole::Tank;
-			case ClassType::Warrior:
-				return CombatRole::Bruiser;
-			case ClassType::Thief:
-			case ClassType::Assassin:
-				return CombatRole::Skirmisher;
-			case ClassType::Archer:
-			case ClassType::Hunter:
-			case ClassType::Marksman:
-			case ClassType::Gunslinger:
-			case ClassType::Crossbowman:
-				return CombatRole::RangedDPS;
-			case ClassType::Mage:
-			case ClassType::Elementalist:
-			case ClassType::Necromancer:
-			case ClassType::Battlemage:
-				return CombatRole::CasterDPS;
-			case ClassType::Druid:
-				return CombatRole::Healer;
-			case ClassType::Bard:
-			case ClassType::Merchant:
-			case ClassType::Alchemist:
-			case ClassType::Blacksmith:
-			case ClassType::Explorer:
-				return CombatRole::Support;
-			default:
-				return CombatRole::None;
-			}
-		}
 	};
 }

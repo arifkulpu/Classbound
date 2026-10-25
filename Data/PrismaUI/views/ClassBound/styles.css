@@ -124,8 +124,7 @@ body{display:block;padding:0}
 .tactics-box-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(218,184,109,0.18)}
 .tactics-box-icon{color:#e2c77e;font-size:13px}
 .tactics-box-title{font:600 10px 'Segoe UI',sans-serif;color:#e8cf90;letter-spacing:1.4px}
-.tactics-box-role{margin-left:auto;font:9px 'Segoe UI',sans-serif;color:#9b978a;letter-spacing:.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tactics-controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tactics-controls-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .tactics-field{display:flex;flex-direction:column;gap:5px;min-width:0;width:100%}
 .tactics-field-label{font:600 9px 'Segoe UI',sans-serif;color:#aba696;letter-spacing:1px}
 .tactics-select-wrap{display:block;width:100%;min-width:0}
