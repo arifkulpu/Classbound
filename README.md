@@ -47,6 +47,13 @@ Install these for the in-game ClassBound menus and SKSE plugin:
 - Prisma UI requires **[Media Keys Fix SKSE](https://www.nexusmods.com/skyrimspecialedition/mods/92948)** (or [Keyboard Shortcuts Fix](https://www.nexusmods.com/skyrimspecialedition/mods/3620)) and the **[Microsoft Visual C++ 2022 Redistributable x64](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)**.
 - King Core is optional; it is only needed for integrations that use ClassBound's King Core API.
 
+### Optional weapon mods for class starter gear
+
+Install these optional mods to receive the matching non-vanilla starter weapons. ClassBound detects each plugin by its ESP filename; if it is missing, the affected class receives the listed vanilla fallback:
+
+- **Knight and Assassin — [Animated Armoury - DAR Version - New Weapons with animations](https://www.nexusmods.com/skyrimspecialedition/mods/35978)** (`NewArmoury.esp`): Knight receives an Iron Pike and Assassin receives Iron Claws. Without this plugin, they receive an Iron Sword and Iron Daggers respectively.
+- **Gunslinger — [Lore Friendly Guns of Skyrim (Formerly Rifles)](https://www.nexusmods.com/skyrimspecialedition/mods/60183)** (`HandgunsOfSkyrim.esp`): Gunslinger receives an Iron Handgun and Common Lead Shot. Without this plugin, Gunslinger receives an Iron Sword.
+
 ## Mod Organizer 2 installation
 
 Install ClassBound as a mod in MO2 and ensure its required SKSE plugins/frameworks are enabled. Launch the game through the SKSE loader configured for that profile. The plugin and interface assets should be present in the virtual `Data` tree at:
@@ -65,6 +72,42 @@ The custom level-up audio file is decoded at plugin startup. If replacing it, ke
 | Ranged | Archer, Hunter, Marksman, Gunslinger, Crossbowman |
 | Magic | Mage, Necromancer, Battlemage, Druid, Elementalist |
 | Social / utility | Merchant, Bard, Alchemist, Blacksmith, Explorer |
+
+## Starting equipment by class
+
+The following items are granted when a class is first selected or changed through a class trainer. Optional weapon mods affect only the items noted below. Knight and Merchant also receive a horse at the player's current location.
+
+### Melee and stealth
+
+- **Warrior:** Iron Greatsword; Iron Armor, Iron Boots, Iron Gauntlets, Iron Helmet; 3 Minor Healing Potions.
+- **Knight:** Iron Pike (requires `NewArmoury.esp`; otherwise this item falls back to an Iron Sword), an additional Iron Sword, Iron Shield, Iron Armor, Iron Boots, Iron Gauntlets, Iron Helmet; 3 Minor Healing Potions; one horse.
+- **Paladin:** Iron War Axe, Iron Shield, Iron Armor, Iron Boots, Iron Gauntlets, Iron Helmet; 5 Minor Healing Potions, 3 Minor Magicka Potions; knows Healing and Lesser Ward; receives Firebolt and Lesser Ward spell tomes.
+- **Thief:** Iron Dagger; Leather Armor, Leather Boots, Leather Bracers, Leather Helmet; 30 Lockpicks, 5 Minor Stamina Potions, 3 Sneak Potions.
+- **Assassin:** Iron Claws (requires `NewArmoury.esp`; each claw falls back to an Iron Dagger); Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 10 Frostbite Venoms, 3 Invisibility Potions.
+
+### Ranged
+
+- **Archer:** Long Bow, 75 Steel Arrows; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Minor Stamina Potions.
+- **Hunter:** Hunting Bow, 60 Steel Arrows; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Torches, 3 Minor Healing Potions.
+- **Marksman:** Hunting Bow, 100 Steel Arrows; Leather Armor, Leather Boots, Leather Bracers, Leather Helmet; 5 Minor Stamina Potions.
+- **Gunslinger:** Iron Handgun and 24 Common Lead Shot (requires `HandgunsOfSkyrim.esp`; the handgun falls back to an Iron Sword if the plugin is absent); Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Minor Healing Potions, 3 Minor Stamina Potions.
+- **Crossbowman:** Crossbow, 60 Steel Bolts; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 4 Minor Stamina Potions. The Crossbow and Steel Bolts require `Dawnguard.esm`.
+
+### Magic
+
+- **Mage:** Staff of Sparks; Novice Robes, Boots, Gloves, Mage Hood; 5 Minor Magicka Potions, 3 Minor Healing Potions; knows Flames, Frostbite, and Sparks; receives Firebolt and Oakflesh spell tomes.
+- **Necromancer:** Iron Dagger; Necromancer Robes, Boots, Gloves, Mage Hood; 3 Petty Soul Gems, 5 Minor Magicka Potions; knows Raise Zombie and Conjure Familiar; receives Raise Zombie and Oakflesh spell tomes.
+- **Battlemage:** Iron Sword; Iron Armor, Iron Boots, Iron Gauntlets, Iron Helmet; 4 Minor Magicka Potions, 3 Minor Healing Potions; receives Bound Sword and Oakflesh spell tomes.
+- **Druid:** Iron War Axe; Novice Robes, Boots, Gloves, Mage Hood; 4 Minor Magicka Potions, 4 Minor Healing Potions; knows Healing, Healing Hands, and Conjure Familiar; receives Conjure Familiar and Healing Hands spell tomes.
+- **Elementalist:** Novice Robes, Boots, Gloves, Mage Hood; 8 Minor Magicka Potions; knows Flames, Frostbite, and Sparks; receives Firebolt and Oakflesh spell tomes.
+
+### Social and utility
+
+- **Merchant:** Iron Dagger; Fine Clothes, Fine Boots, Gloves, Fine Hat; 1,000 Gold, 2 Garnets, 2 Amethysts, 1 Ruby, 1 Sapphire; one horse.
+- **Bard:** Iron Dagger; Tavern Clothes, Boots, Gloves, Hat; 1 Flute, 1 Lute, 100 Gold; knows Courage and Clairvoyance.
+- **Alchemist:** Iron Dagger; Fine Clothes, Fine Boots, Gloves, Mage Hood; 4 each of Minor Healing, Minor Magicka, and Minor Stamina Potions; 3 Frostbite Venoms; 1 each of Poison Recipe Note 1 and 2.
+- **Blacksmith:** Iron Mace; Blacksmith's Apron, Boots, Gloves, Leather Helmet; 10 Iron Ingots, 5 Steel Ingots, 5 Leather Strips, 5 Leather, 6 Firewood.
+- **Explorer:** Iron Sword; Fur Armor, Fur Boots, Fur Gauntlets, Fur Helmet; 5 Torches, 10 Lockpicks, 3 Minor Healing Potions; Adventurer Backpack with Bedroll if `ccfsvsse001-backpacks.esl` is installed.
 
 ## Known scope
 

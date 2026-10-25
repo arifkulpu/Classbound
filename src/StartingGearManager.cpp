@@ -6,6 +6,12 @@
 
 namespace Classbound
 {
+	namespace
+	{
+		constexpr std::uint32_t kSaddledBrownHorseFormID = 0x00023AB2;
+		constexpr std::uint32_t kPlayerHorseFactionFormID = 0x00068D78;
+	}
+
 	std::vector<StartingItem> StartingGearManager::GetGearForClass(ClassType type) const
 	{
 		switch (type) {
@@ -109,8 +115,8 @@ namespace Classbound
 
 		case ClassType::Gunslinger:
 			return {
-				{ 0x0000082E, 1, "Iron Pistol", "PistolMod.esp", "Skyrim.esm", 0x00012EB7 }, // Iron Pistol (fallback: Iron Sword)
-				{ 0x00000857, 24, "Pistol Bullets", "PistolMod.esp" },    // 24x Pistol Bullets
+				{ 0x00000809, 1, "Iron Handgun", "HandgunsOfSkyrim.esp", "Skyrim.esm", 0x00012EB7 }, // Iron Handgun (fallback: Iron Sword)
+				{ 0x00000812, 24, "Common Lead Shot", "HandgunsOfSkyrim.esp" }, // 24x Common Lead Shot
 				{ 0x00013911, 1, "Hide Armor" },                           // Hide Armor
 				{ 0x00013910, 1, "Hide Boots" },                           // Hide Boots
 				{ 0x00013912, 1, "Hide Bracers" },                         // Hide Bracers (handwear)
@@ -347,24 +353,35 @@ namespace Classbound
 			AddSpellToActor(actor, 0x00012FD0); // Flames
 			AddSpellToActor(actor, 0x0002B96B); // Frostbite
 			AddSpellToActor(actor, 0x0002DD2A); // Sparks
+			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Firebolt (attack)
+			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
 			break;
 
 		case ClassType::Necromancer:
 			AddSpellToActor(actor, 0x000211EB); // Raise Zombie
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
-			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Raise Zombie
+			AddItemToActor(actor, 0x0009E2AA, 1); // Spell Tome: Raise Zombie (attack/summon)
+			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
+			break;
+
+		case ClassType::Battlemage:
+			AddItemToActor(actor, 0x0009E2A9, 1); // Spell Tome: Bound Sword (attack)
+			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
 			break;
 
 		case ClassType::Paladin:
 			AddSpellToActor(actor, 0x00012FCC); // Healing
 			AddSpellToActor(actor, 0x0004D3F2); // Lesser Ward
+			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Firebolt (attack)
+			AddItemToActor(actor, 0x0009E2AE, 1); // Spell Tome: Lesser Ward (defense)
 			break;
 
 		case ClassType::Druid:
 			AddSpellToActor(actor, 0x00012FCC); // Healing
 			AddSpellToActor(actor, 0x00012FC6); // Healing Hands (heal others)
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
-			AddItemToActor(actor, 0x000A26F8, 1); // Spell Tome: Healing Hands
+			AddItemToActor(actor, 0x0009E2AB, 1); // Spell Tome: Conjure Familiar (attack/summon)
+			AddItemToActor(actor, 0x000A271E, 1); // Spell Tome: Healing Hands (defense)
 			break;
 
 		case ClassType::Bard:
@@ -383,64 +400,44 @@ namespace Classbound
 	void StartingGearManager::SpawnHorseForPlayer()
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
-		if (!player) return;
+		if (!player) {
+			SKSE::log::warn("StartingGearManager: Cannot summon Knight horse; player is unavailable.");
+			return;
+		}
 
 		auto* cell = player->GetParentCell();
-		if (!cell) return;
+		if (!cell) {
+			SKSE::log::warn("StartingGearManager: Cannot summon Knight horse; player has no parent cell yet.");
+			return;
+		}
 
-		// If player is inside an interior, delay or summon near player when outdoor, but PlaceObjectAtMe handles current cell
-		// Whiterun horse base form: 0x000684F1 (EncHorseSaddled)
-		auto* horseBase = RE::TESForm::LookupByID<RE::TESNPC>(0x000684F1);
+		// Vanilla saddled brown horse base form.
+		auto* horseForm = RE::TESForm::LookupByID(kSaddledBrownHorseFormID);
+		auto* horseBase = horseForm ? horseForm->As<RE::TESNPC>() : nullptr;
 		if (!horseBase) {
 			if (auto* dh = RE::TESDataHandler::GetSingleton()) {
-				horseBase = dh->LookupForm<RE::TESNPC>(0x000684F1, "Skyrim.esm");
+				horseBase = dh->LookupForm<RE::TESNPC>(kSaddledBrownHorseFormID, "Skyrim.esm");
 			}
 		}
 
 		if (!horseBase) {
-			SKSE::log::warn("StartingGearManager: Could not find horse base form 0x000684F1");
+			SKSE::log::warn("StartingGearManager: Could not find saddled horse base form 0x{:08X} in Skyrim.esm.", kSaddledBrownHorseFormID);
 			return;
 		}
 
 		auto placedRefr = player->PlaceObjectAtMe(horseBase, false);
 		if (!placedRefr) {
-			SKSE::log::warn("StartingGearManager: PlaceObjectAtMe failed for horse");
+			SKSE::log::warn("StartingGearManager: PlaceObjectAtMe failed for Knight horse.");
 			return;
 		}
 
 		auto* horseActor = placedRefr->As<RE::Actor>();
-		if (horseActor) {
-			// Offset horse position 200 units to player's side/front so it doesn't clip directly inside the player
-			auto pos = player->GetPosition();
-			float angleZ = player->GetAngleZ();
-			pos.x += 180.0f * std::sin(angleZ);
-			pos.y += 180.0f * std::cos(angleZ);
-			horseActor->SetPosition(pos, true);
-
-			// Add player ownership
-			horseActor->extraList.SetOwner(player);
-
-			// Add to PlayerHorseFaction (0x000684E0) rank 0
-			auto* horseFaction = RE::TESForm::LookupByID<RE::TESFaction>(0x000684E0);
-			if (horseFaction) {
-				horseActor->AddToFaction(horseFaction, 0);
-			}
-
-			// Link as player's last ridden horse via ExtraHorse on player
-			auto* xHorse = player->extraList.GetByType<RE::ExtraHorse>();
-			if (!xHorse) {
-				xHorse = RE::BSExtraData::Create<RE::ExtraHorse>();
-				if (xHorse) {
-					player->extraList.Add(xHorse);
-				}
-			}
-			if (xHorse) {
-				xHorse->horseRef = horseActor->GetHandle();
-			}
-
-			SKSE::log::info("StartingGearManager: Successfully summoned war horse for Knight!");
-			PrismaUIManager::Notify("A loyal war horse has arrived to serve you!", "success");
+		if (!horseActor) {
+			SKSE::log::warn("StartingGearManager: Placed Knight horse reference is not an actor.");
+			return;
 		}
+		SKSE::log::info("StartingGearManager: Spawned a class horse at the player's current position.");
+		PrismaUIManager::Notify("Your horse has arrived!", "success");
 	}
 
 	void StartingGearManager::GrantStartingGear(ClassType classType)
@@ -450,7 +447,7 @@ namespace Classbound
 
 		GrantStartingGearToActor(player, classType);
 
-		if (classType == ClassType::Knight) {
+		if (classType == ClassType::Knight || classType == ClassType::Merchant) {
 			SpawnHorseForPlayer();
 		}
 
