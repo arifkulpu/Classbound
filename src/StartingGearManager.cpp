@@ -1,7 +1,10 @@
 #include "StartingGearManager.h"
+#include "ClassManager.h"
 #include "PrismaUIManager.h"
+#include "FollowerManager.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
+#include <algorithm>
 #include <cmath>
 
 namespace Classbound
@@ -10,6 +13,113 @@ namespace Classbound
 	{
 		constexpr std::uint32_t kSaddledBrownHorseFormID = 0x00023AB2;
 		constexpr std::uint32_t kPlayerHorseFactionFormID = 0x00068D78;
+	constexpr std::uint32_t kCurrentFollowerFactionFormID = 0x0005C84D;
+	constexpr std::uint32_t kAHLFollowPackageLocalFormID = 0x00000B13;
+	constexpr std::uint32_t kAHLOwnedHorsesListLocalFormID = 0x00000B11;
+	constexpr std::uint32_t kAHLHorseFactionFirstLocalFormID = 0x00000D42;
+	constexpr const char* kAHLPlugin = "AHorsesLife.esp";
+	constexpr std::uint32_t kADLCurrentDogFactionLocalFormID = 0x0000AA16;
+	constexpr std::uint32_t kMaleMerchantGuardLocalFormID = 0x00000800;
+	constexpr std::uint32_t kFemaleMerchantGuardLocalFormID = 0x00000801;
+	constexpr const char* kMerchantGuardPlugin = "ClassBoundGuards.esp";
+	constexpr std::uint32_t kADogLifeFollowerDogFormID = 0x00109487;
+	constexpr std::uint32_t kADogLifeDogFollowPackageLocalFormID = 0x00033268;
+	constexpr const char* kADogLifePlugin = "ADogsLife.esp";
+
+	template <class T>
+	T* LookupLightPluginForm(RE::TESDataHandler* dataHandler, std::uint32_t localFormID, const char* pluginName)
+	{
+		if (!dataHandler) return nullptr;
+		if (auto* form = dataHandler->LookupForm<T>(localFormID, pluginName)) return form;
+
+		// ESL-flagged plugins use the FE:light-index:local-ID layout at runtime.
+		if (const auto lightIndex = dataHandler->GetLoadedLightModIndex(pluginName)) {
+			const RE::FormID runtimeFormID = 0xFE000000u |
+				(static_cast<RE::FormID>(*lightIndex) << 12) | (localFormID & 0xFFFu);
+			if (auto* form = RE::TESForm::LookupByID(runtimeFormID)) return form->As<T>();
+		}
+		return nullptr;
+	}
+
+	RE::TESNPC* FindNPCByEditorID(RE::TESDataHandler* dataHandler, std::string_view editorID)
+	{
+		if (!dataHandler) return nullptr;
+		for (auto* npc : dataHandler->GetFormArray<RE::TESNPC>()) {
+			if (npc && editorID == npc->GetFormEditorID()) return npc;
+		}
+		return nullptr;
+	}
+
+	bool IntegrateHorseWithAHL(RE::TESDataHandler* dataHandler, RE::Actor* horse)
+	{
+		if (!dataHandler || !horse ||
+			!(dataHandler->LookupLoadedModByName(kAHLPlugin) || dataHandler->LookupLoadedLightModByName(kAHLPlugin))) return false;
+
+		auto* followPackage = LookupLightPluginForm<RE::TESPackage>(dataHandler, kAHLFollowPackageLocalFormID, kAHLPlugin);
+		auto* ownedHorses = LookupLightPluginForm<RE::BGSListForm>(dataHandler, kAHLOwnedHorsesListLocalFormID, kAHLPlugin);
+		if (!followPackage || !ownedHorses) {
+			SKSE::log::warn("StartingGearManager: A Horse's Life follow package or owned-horse list could not be resolved.");
+			return false;
+		}
+
+		const bool alreadyOwned = ownedHorses->HasForm(horse);
+		const auto ownedCount = static_cast<std::uint32_t>(ownedHorses->forms.size());
+		std::uint32_t slot = ownedCount < 10 ? ownedCount : 9;
+		RE::TESFaction* ahlHorseFaction = nullptr;
+		for (std::uint32_t i = 0; i < 10; ++i) {
+			auto* candidate = LookupLightPluginForm<RE::TESFaction>(dataHandler, kAHLHorseFactionFirstLocalFormID + i, kAHLPlugin);
+			if (candidate && horse->IsInFaction(candidate)) {
+				slot = i;
+				ahlHorseFaction = candidate;
+				break;
+			}
+		}
+		if (!ahlHorseFaction) {
+			ahlHorseFaction = LookupLightPluginForm<RE::TESFaction>(
+				dataHandler, kAHLHorseFactionFirstLocalFormID + slot, kAHLPlugin);
+			if (ahlHorseFaction) horse->AddToFaction(ahlHorseFaction, 0);
+		}
+		if (auto* followerFaction = dataHandler->LookupForm<RE::TESFaction>(kCurrentFollowerFactionFormID, "Skyrim.esm")) {
+			horse->AddToFaction(followerFaction, 0);
+		}
+		if (auto* playerHorseFaction = dataHandler->LookupForm<RE::TESFaction>(kPlayerHorseFactionFormID, "Skyrim.esm")) {
+			horse->AddToFaction(playerHorseFaction, 0);
+		}
+		horse->GetActorRuntimeData().boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate);
+		if (!alreadyOwned) {
+			horse->PutCreatedPackage(followPackage, true, true, false);
+			ownedHorses->AddForm(horse);
+			SKSE::log::info("StartingGearManager: Registered class horse {:08X} in AHLFormOwnedHorses and AHLFactionHorse{:02}.",
+				horse->GetFormID(), slot + 1);
+		} else {
+			SKSE::log::info("StartingGearManager: Reconciled existing A Horse's Life horse {:08X} (slot {}).",
+				horse->GetFormID(), slot + 1);
+		}
+		horse->EvaluatePackage(true, true);
+		return true;
+	}
+
+	void RegisterDogAsADLFollower(RE::TESDataHandler* dataHandler, RE::Actor* dog)
+	{
+		if (!dataHandler || !dog) return;
+		if (auto* followerFaction = dataHandler->LookupForm<RE::TESFaction>(kCurrentFollowerFactionFormID, "Skyrim.esm")) {
+			dog->AddToFaction(followerFaction, 0);
+		}
+		auto* adlCurrentDogFaction = dataHandler->LookupForm<RE::TESFaction>(kADLCurrentDogFactionLocalFormID, kADogLifePlugin);
+		const bool alreadyAdopted = adlCurrentDogFaction && dog->IsInFaction(adlCurrentDogFaction);
+		if (adlCurrentDogFaction && !alreadyAdopted) dog->AddToFaction(adlCurrentDogFaction, 0);
+		if (!alreadyAdopted) {
+			if (auto* followPackage = dataHandler->LookupForm<RE::TESPackage>(kADogLifeDogFollowPackageLocalFormID, kADogLifePlugin)) {
+				dog->PutCreatedPackage(followPackage, true, true, false);
+			} else {
+				SKSE::log::warn("StartingGearManager: ADLPackageDogFollow could not be resolved.");
+			}
+		}
+		dog->GetActorRuntimeData().boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate);
+		dog->EvaluatePackage(true, true);
+		SKSE::log::info("StartingGearManager: Registered class dog {:08X} as an A Dog's Life follower (ADLCurrentDogFaction={}).",
+			dog->GetFormID(), adlCurrentDogFaction != nullptr);
+	}
 	}
 
 	std::vector<StartingItem> StartingGearManager::GetGearForClass(ClassType type) const
@@ -116,7 +226,7 @@ namespace Classbound
 		case ClassType::Gunslinger:
 			return {
 				{ 0x00000809, 1, "Iron Handgun", "HandgunsOfSkyrim.esp", "Skyrim.esm", 0x00012EB7 }, // Iron Handgun (fallback: Iron Sword)
-				{ 0x00000812, 24, "Common Lead Shot", "HandgunsOfSkyrim.esp" }, // 24x Common Lead Shot
+				{ 0x00000812, 100, "Common Lead Shot", "HandgunsOfSkyrim.esp" }, // 100x Common Lead Shot
 				{ 0x00013911, 1, "Hide Armor" },                           // Hide Armor
 				{ 0x00013910, 1, "Hide Boots" },                           // Hide Boots
 				{ 0x00013912, 1, "Hide Bracers" },                         // Hide Bracers (handwear)
@@ -436,8 +546,231 @@ namespace Classbound
 			SKSE::log::warn("StartingGearManager: Placed Knight horse reference is not an actor.");
 			return;
 		}
-		SKSE::log::info("StartingGearManager: Spawned a class horse at the player's current position.");
+
+		const bool ahlIntegrated = IntegrateHorseWithAHL(RE::TESDataHandler::GetSingleton(), horseActor);
+		if (!ahlIntegrated) {
+			SKSE::log::info("StartingGearManager: Spawned a class horse without A Horse's Life integration.");
+		}
 		PrismaUIManager::Notify("Your horse has arrived!", "success");
+	}
+
+	void StartingGearManager::SpawnMerchantGuards()
+	{
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		auto* dataHandler = RE::TESDataHandler::GetSingleton();
+		if (!player || !dataHandler || !player->GetParentCell()) {
+			SKSE::log::warn("StartingGearManager: Cannot spawn Merchant guards; player or cell is unavailable.");
+			return;
+		}
+
+		auto* maleBase = LookupLightPluginForm<RE::TESNPC>(dataHandler, kMaleMerchantGuardLocalFormID, kMerchantGuardPlugin);
+		auto* femaleBase = LookupLightPluginForm<RE::TESNPC>(dataHandler, kFemaleMerchantGuardLocalFormID, kMerchantGuardPlugin);
+		if (!maleBase) maleBase = FindNPCByEditorID(dataHandler, "ClassBoundMaleGuard");
+		if (!femaleBase) femaleBase = FindNPCByEditorID(dataHandler, "ClassBoundFemaleGuard");
+		if (!maleBase || !femaleBase) {
+			const auto lightIndex = dataHandler->GetLoadedLightModIndex(kMerchantGuardPlugin);
+			const auto fullIndex = dataHandler->GetLoadedModIndex(kMerchantGuardPlugin);
+			SKSE::log::error("StartingGearManager: Guard forms unresolved (loaded={}, lightIndex={}, fullIndex={}, male={}, female={}). Check plugin records in {}.",
+				dataHandler->LookupLoadedLightModByName(kMerchantGuardPlugin) != nullptr || dataHandler->LookupLoadedModByName(kMerchantGuardPlugin) != nullptr,
+				lightIndex ? std::to_string(*lightIndex) : "none",
+				fullIndex ? std::to_string(*fullIndex) : "none",
+				maleBase != nullptr, femaleBase != nullptr, kMerchantGuardPlugin);
+			return;
+		}
+
+		bool maleAlreadySpawned = false;
+		bool femaleAlreadySpawned = false;
+		if (auto* processLists = RE::ProcessLists::GetSingleton()) {
+			processLists->ForAllActors([&](RE::Actor* actor) {
+				if (!actor) return RE::BSContainer::ForEachResult::kContinue;
+				const auto* base = actor->GetActorBase();
+				if (base == maleBase) maleAlreadySpawned = true;
+				if (base == femaleBase) femaleAlreadySpawned = true;
+				return RE::BSContainer::ForEachResult::kContinue;
+			});
+		}
+
+		auto* followerFaction = RE::TESForm::LookupByID<RE::TESFaction>(kCurrentFollowerFactionFormID);
+		if (!followerFaction) followerFaction = dataHandler->LookupForm<RE::TESFaction>(kCurrentFollowerFactionFormID, "Skyrim.esm");
+
+		auto spawnGuard = [&](RE::TESNPC* base, bool alreadySpawned, float sideOffset, const char* label) {
+			if (alreadySpawned) return;
+			auto placed = player->PlaceObjectAtMe(base, true);
+			if (!placed) {
+				SKSE::log::warn("StartingGearManager: Failed to spawn {} Merchant guard.", label);
+				return;
+			}
+			auto* guard = placed->As<RE::Actor>();
+			if (!guard) {
+				SKSE::log::warn("StartingGearManager: Spawned {} guard reference is not an actor.", label);
+				return;
+			}
+
+			const auto playerPosition = player->GetPosition();
+			const float angle = player->GetAngleZ();
+			RE::NiPoint3 guardPosition = playerPosition;
+			guardPosition.x += sideOffset * std::cos(angle) + 110.0f * std::sin(angle);
+			guardPosition.y -= sideOffset * std::sin(angle) - 110.0f * std::cos(angle);
+			guard->SetPosition(guardPosition, true);
+
+			// Register the actor as a vanilla-style teammate so Skyrim's built-in
+			// DefaultFollowPlayer package and ClassBound's follower scanner recognize it.
+			if (followerFaction) guard->AddToFaction(followerFaction, 0);
+			guard->GetActorRuntimeData().boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate);
+			guard->EvaluatePackage(true, true);
+
+			// Equip weapons & armor on the guard using ActorEquipManager
+			auto* equipManager = RE::ActorEquipManager::GetSingleton();
+			if (equipManager) {
+				// Steel armor set: Cuirass, Gauntlets, Boots, Helmet
+				const std::uint32_t steelArmor[] = { 0x00013952, 0x00013953, 0x00013951, 0x00013954 };
+				for (const auto formID : steelArmor) {
+					auto* form = RE::TESForm::LookupByID(formID);
+					if (!form) form = dataHandler->LookupForm(formID, "Skyrim.esm");
+					if (auto* item = form ? form->As<RE::TESBoundObject>() : nullptr) {
+						guard->AddObjectToContainer(item, nullptr, 1, nullptr);
+						equipManager->EquipObject(guard, item, nullptr, 1, nullptr, true, true, false, false);
+					}
+				}
+
+				if (std::strcmp(label, "male") == 0) {
+					// Male guard: Steel Sword & Steel Shield
+					const std::uint32_t meleeGear[] = { 0x00013989, 0x00013955 };
+					for (const auto formID : meleeGear) {
+						auto* form = RE::TESForm::LookupByID(formID);
+						if (!form) form = dataHandler->LookupForm(formID, "Skyrim.esm");
+						if (auto* item = form ? form->As<RE::TESBoundObject>() : nullptr) {
+							guard->AddObjectToContainer(item, nullptr, 1, nullptr);
+							equipManager->EquipObject(guard, item, nullptr, 1, nullptr, true, true, false, false);
+						}
+					}
+				} else {
+					// Female guard: Hunting Bow, Steel Arrows, Steel Sword
+					auto* bowForm = RE::TESForm::LookupByID(0x00013985);
+					if (!bowForm) bowForm = dataHandler->LookupForm(0x00013985, "Skyrim.esm");
+					if (auto* bow = bowForm ? bowForm->As<RE::TESBoundObject>() : nullptr) {
+						guard->AddObjectToContainer(bow, nullptr, 1, nullptr);
+						equipManager->EquipObject(guard, bow, nullptr, 1, nullptr, true, true, false, false);
+					}
+
+					auto* arrowForm = RE::TESForm::LookupByID(0x0001397F);
+					if (!arrowForm) arrowForm = dataHandler->LookupForm(0x0001397F, "Skyrim.esm");
+					if (auto* arrows = arrowForm ? arrowForm->As<RE::TESBoundObject>() : nullptr) {
+						guard->AddObjectToContainer(arrows, nullptr, 50, nullptr);
+						equipManager->EquipObject(guard, arrows, nullptr, 50, nullptr, true, true, false, false);
+					}
+
+					auto* swordForm = RE::TESForm::LookupByID(0x00013989);
+					if (!swordForm) swordForm = dataHandler->LookupForm(0x00013989, "Skyrim.esm");
+					if (auto* sword = swordForm ? swordForm->As<RE::TESBoundObject>() : nullptr) {
+						guard->AddObjectToContainer(sword, nullptr, 1, nullptr);
+					}
+				}
+			}
+
+			SKSE::log::info("StartingGearManager: Spawned level-one {} Merchant bodyguard {}.", label, guard->GetName());
+		};
+
+		spawnGuard(maleBase, maleAlreadySpawned, -65.0f, "male");
+		spawnGuard(femaleBase, femaleAlreadySpawned, 65.0f, "female");
+		FollowerManager::GetSingleton()->ScanActiveFollowers(true);
+		PrismaUIManager::Notify("Two Merchant Bodyguards have joined your caravan.", "success");
+	}
+
+	void StartingGearManager::RestoreClassCompanionsAfterLoad()
+	{
+		const auto currentClass = ClassManager::GetSingleton()->GetPlayerData().currentClass;
+		if (currentClass == ClassType::Merchant) {
+			SpawnMerchantGuards();
+		}
+
+		auto* dataHandler = RE::TESDataHandler::GetSingleton();
+		auto* processLists = RE::ProcessLists::GetSingleton();
+		if (!dataHandler || !processLists) return;
+
+		if (currentClass == ClassType::Knight || currentClass == ClassType::Merchant) {
+			auto* playerHorseFaction = dataHandler->LookupForm<RE::TESFaction>(kPlayerHorseFactionFormID, "Skyrim.esm");
+			if (playerHorseFaction) {
+				processLists->ForAllActors([&](RE::Actor* actor) {
+					if (actor && actor->IsInFaction(playerHorseFaction)) {
+						IntegrateHorseWithAHL(dataHandler, actor);
+					}
+					return RE::BSContainer::ForEachResult::kContinue;
+				});
+			}
+		}
+
+		if (currentClass == ClassType::Explorer || currentClass == ClassType::Druid) {
+			auto* dogBase = dataHandler->LookupForm<RE::TESNPC>(kADogLifeFollowerDogFormID, kADogLifePlugin);
+			if (!dogBase) {
+				if (auto* form = RE::TESForm::LookupByID(kADogLifeFollowerDogFormID)) dogBase = form->As<RE::TESNPC>();
+			}
+			if (dogBase) {
+				processLists->ForAllActors([&](RE::Actor* actor) {
+					if (actor && actor->GetActorBase() == dogBase) RegisterDogAsADLFollower(dataHandler, actor);
+					return RE::BSContainer::ForEachResult::kContinue;
+				});
+			}
+		}
+	}
+
+	void StartingGearManager::SpawnClassDogFollower()
+	{
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		auto* dataHandler = RE::TESDataHandler::GetSingleton();
+		if (!player || !dataHandler || !player->GetParentCell()) {
+			SKSE::log::warn("StartingGearManager: Cannot spawn class dog; player or cell is unavailable.");
+			return;
+		}
+
+		auto* dogBase = dataHandler->LookupForm<RE::TESNPC>(kADogLifeFollowerDogFormID, kADogLifePlugin);
+		// WEFollowerDog is an override record in A Dog's Life whose saved FormID
+		// is inherited from its master, so the plugin-local lookup may not resolve it.
+		if (!dogBase) {
+			if (auto* form = RE::TESForm::LookupByID(kADogLifeFollowerDogFormID)) dogBase = form->As<RE::TESNPC>();
+		}
+		if (!dogBase) {
+			const auto lightIndex = dataHandler->GetLoadedLightModIndex(kADogLifePlugin);
+			const auto fullIndex = dataHandler->GetLoadedModIndex(kADogLifePlugin);
+			SKSE::log::warn("StartingGearManager: A Dog's Life dog unresolved (loaded={}, lightIndex={}, fullIndex={}); skipping class dog follower.",
+				dataHandler->LookupLoadedModByName(kADogLifePlugin) != nullptr,
+				lightIndex ? std::to_string(*lightIndex) : "none",
+				fullIndex ? std::to_string(*fullIndex) : "none");
+			return;
+		}
+
+		RE::Actor* existingDog = nullptr;
+		if (auto* processLists = RE::ProcessLists::GetSingleton()) {
+			processLists->ForAllActors([&](RE::Actor* actor) {
+				if (actor && actor->GetActorBase() == dogBase) existingDog = actor;
+				return RE::BSContainer::ForEachResult::kContinue;
+			});
+		}
+		if (existingDog) {
+			RegisterDogAsADLFollower(dataHandler, existingDog);
+			SKSE::log::info("StartingGearManager: Existing A Dog's Life class dog was reconciled; no duplicate spawned.");
+			return;
+		}
+
+		auto placed = player->PlaceObjectAtMe(dogBase, true);
+		auto* dog = placed ? placed->As<RE::Actor>() : nullptr;
+		if (!dog) {
+			SKSE::log::warn("StartingGearManager: Failed to spawn A Dog's Life follower dog.");
+			return;
+		}
+
+		const auto playerPosition = player->GetPosition();
+		const float angle = player->GetAngleZ();
+		RE::NiPoint3 dogPosition = playerPosition;
+		dogPosition.x += 105.0f * std::sin(angle);
+		dogPosition.y -= 105.0f * std::cos(angle);
+		dog->SetPosition(dogPosition, true);
+
+		RegisterDogAsADLFollower(dataHandler, dog);
+
+		SKSE::log::info("StartingGearManager: Spawned A Dog's Life dog follower for Explorer/Druid.");
+		FollowerManager::GetSingleton()->ScanActiveFollowers(true);
+		PrismaUIManager::Notify("A loyal dog has joined your journey.", "success");
 	}
 
 	void StartingGearManager::GrantStartingGear(ClassType classType)
@@ -449,6 +782,12 @@ namespace Classbound
 
 		if (classType == ClassType::Knight || classType == ClassType::Merchant) {
 			SpawnHorseForPlayer();
+		}
+		if (classType == ClassType::Merchant) {
+			SpawnMerchantGuards();
+		}
+		if (classType == ClassType::Explorer || classType == ClassType::Druid) {
+			SpawnClassDogFollower();
 		}
 
 		char msg[128];

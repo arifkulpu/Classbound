@@ -31,6 +31,7 @@ namespace Classbound
 
 		void GrantStartingGear(ClassType classType);
 		void GrantStartingGearToActor(RE::Actor* actor, ClassType classType);
+		void RestoreClassCompanionsAfterLoad();
 
 	private:
 		StartingGearManager() = default;
@@ -40,5 +41,7 @@ namespace Classbound
 		void AddItemToActor(RE::Actor* actor, uint32_t formID, uint32_t count, const char* sourcePlugin = nullptr, const char* fallbackPlugin = nullptr, uint32_t fallbackFormID = 0);
 		void AddSpellToActor(RE::Actor* actor, uint32_t spellFormID);
 		void SpawnHorseForPlayer();
+		void SpawnMerchantGuards();
+		void SpawnClassDogFollower();
 	};
 }

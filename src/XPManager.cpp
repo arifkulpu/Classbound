@@ -45,7 +45,9 @@ namespace Classbound
 		std::vector<uint32_t> recipients;
 		for (const auto& follower : followers->GetAllFollowers()) {
 			// ScanActiveFollowers has already refreshed this cached active state (at most every 2s).
-			if (follower.isActiveFollower) recipients.push_back(follower.formID);
+			// Followers without a ClassBound class (such as class-start guards)
+			// should not divide party XP or collect progression invisibly.
+			if (follower.isActiveFollower && follower.currentClass != ClassType::None) recipients.push_back(follower.formID);
 		}
 		const uint32_t partySize = static_cast<uint32_t>(recipients.size()) + 1;
 		const uint32_t eachShare = finalAmount / partySize;

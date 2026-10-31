@@ -127,15 +127,6 @@ namespace Classbound
 		}
 		_inCombatState = currentlyInCombat;
 
-		// Update companion target priorities during combat.
-		if (currentlyInCombat) {
-			constexpr uint64_t kCombatTacticsCooldownMs = 4000;
-			if ((nowMs - _combatTacticsCooldownMs) >= kCombatTacticsCooldownMs) {
-				_combatTacticsCooldownMs = nowMs;
-				FollowerManager::GetSingleton()->UpdateFollowerTargeting();
-			}
-		}
-
 		// Check practice dummy session: if player hit a dummy and 3s have passed since last hit, flush total.
 		if (_batchedDummyXP > 0 && _lastDummyHitTimeMs > 0) {
 			if (nowMs - _lastDummyHitTimeMs >= 3000) {

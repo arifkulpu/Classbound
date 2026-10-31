@@ -11,6 +11,8 @@
 #include "KingCoreAdapter.h"
 #include "PrismaUIManager.h"
 #include "EffectManager.h"
+#include "ClassManager.h"
+#include "StartingGearManager.h"
 #include "KingCore/KingCoreAPI.h"
 
 using namespace std::literals;
@@ -103,6 +105,15 @@ void HandleSKSEMessage(SKSE::MessagingInterface::Message* a_msg)
         DispatchKingCoreAPI("KingCore");
         DispatchKingCoreAPI(nullptr);
         SKSE::log::info("Dispatched King Core API provider registration (kDataLoaded).");
+    }
+    else if (a_msg->type == SKSE::MessagingInterface::kPostLoadGame) {
+        // Save data is restored before this message. Defer to the game task
+        // queue so the player and loaded cell are ready for spawning.
+        if (auto* taskInterface = SKSE::GetTaskInterface()) {
+            taskInterface->AddTask([]() {
+                Classbound::StartingGearManager::GetSingleton()->RestoreClassCompanionsAfterLoad();
+            });
+        }
     }
     else if (a_msg->type == KingCore::MESSAGE_TYPE_REQUEST_API) {
         // King Core or another consumer explicitly requested the API

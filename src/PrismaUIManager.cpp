@@ -81,7 +81,6 @@ namespace Classbound
 		_api->RegisterJSListener(_view, "cbClassConfirmed", OnClassConfirmed);
 		_api->RegisterJSListener(_view, "cbCloseClassBound", OnClose);
 		_api->RegisterJSListener(_view, "cbFollowerAssign", OnFollowerAssign);
-		_api->RegisterJSListener(_view, "cbFollowerTacticsChanged", OnFollowerTacticsChanged);
 		_api->RegisterJSListener(_view, "cbUniversalSkillAction", OnUniversalSkillAction);
 		_api->RegisterJSListener(_view, "cbTestAction", OnTestAction);
 		_api->RegisterJSListener(_view, "cbSettingsChanged", OnSettingsChanged);
@@ -648,28 +647,6 @@ namespace Classbound
 		} catch (const std::exception& e) {
 			SKSE::log::error("PrismaUI companion class request could not be read: {}", e.what());
 			NotifyOnGameThread("Companion class selection could not be read.");
-		}
-	}
-
-	void PrismaUIManager::OnFollowerTacticsChanged(const char* data)
-	{
-		if (!data) return;
-		try {
-			auto parsed = nlohmann::json::parse(data);
-			const auto formID = parsed.value("formID", uint32_t{ 0 });
-			if (formID == 0) return;
-
-			if (parsed.contains("tacticalFocus")) {
-				uint32_t focus = parsed["tacticalFocus"].get<uint32_t>();
-				if (auto* tasks = SKSE::GetTaskInterface()) {
-					tasks->AddTask([formID, focus]() {
-						FollowerManager::GetSingleton()->SetFollowerFocus(formID, static_cast<TacticalFocus>(focus));
-						GetSingleton()->SendState();
-					});
-				}
-			}
-		} catch (const std::exception& e) {
-			SKSE::log::error("PrismaUI OnFollowerTacticsChanged failed: {}", e.what());
 		}
 	}
 

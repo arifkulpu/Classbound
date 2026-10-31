@@ -38,11 +38,6 @@ namespace Classbound
 		void ReapplyAllFollowerBonuses();
 		void ClearFollowers();
 
-		// Optional target-priority directives. Companion combat abilities and formations are not managed here.
-		void UpdateFollowerTargeting();
-
-		void SetFollowerFocus(uint32_t formID, TacticalFocus focus);
-
 		// Serialization helpers
 		void AddLoadedFollower(const FollowerClassData& data);
 

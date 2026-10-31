@@ -5,9 +5,10 @@ ClassBound is an SKSE plugin that adds class selection, shared progression, a un
 ## Current features
 
 - **20 playable classes:** Warrior, Knight, Paladin, Thief, Assassin, Archer, Hunter, Marksman, Gunslinger, Crossbowman, Mage, Necromancer, Battlemage, Druid, Elementalist, Merchant, Bard, Alchemist, Blacksmith, and Explorer.
+- **Class starter gear:** Each class receives its listed starting equipment and supplies. Knight and Merchant receive a horse. Merchant also receives two level-one Merchant Bodyguards (one male, one female) in Steel Armor who follow the player.
 - **Class progression:** Shared XP advances a ClassBound level from 1 to 100. XP required per level increases with level. The setting to limit ClassBound level to Skyrim character level is enabled by default in settings.
 - **Universal Skill Tree:** Earn 3 skill points per ClassBound level and spend them across 16 shared attributes. Skill ranks are capped at 30. A class must be chosen (for player) or assigned (for companions) before investing skill points in the tree. The tree includes Health, Magicka, Stamina, regeneration, physical and spell power, critical chance and damage, defense, resistances, agility, luck, XP gain, and Carry Capacity. Carry Capacity adds 10 carry weight per rank.
-- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Companions cannot spend skill points until a class has been chosen. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold. Followers use Skyrim's normal combat and formation behavior; ClassBound does not grant them custom combat abilities or formation commands. Target priority can still be selected in the Followers page.
+- **Companions:** Assign classes to active humanoid followers, view their progression, and manage each companion's universal skill points. Companions cannot spend skill points until a class has been chosen. Follower cards show a portrait selected from the companion's race and sex. Active party members share XP with the player. Class changes for an already-classed character require trainer access and gold. Followers use Skyrim's normal combat AI; ClassBound leaves targeting and tactics to Skyrim's engine.
 - **Class Codex interface:** PrismaUI pages include Class Codex, Change Class, Character, Skill Tree, Companion Skills, Followers, Bonuses, Statistics, Settings, and Cheat Menu. The legacy SKSE Menu Framework interface remains available.
 - **Level-up feedback:** Level-ups grant the configured skill points, show an in-game notification and character-centered overlay, play the supplied `level-up.mp3`, and apply a visual effect. If custom audio cannot load, Skyrim's level-up sound is used as a fallback.
 - **Progression test controls:** The Cheat Menu can grant XP and skill points to the selected player or active companion, grant levels directly to the player, and has a dedicated Follower Level Test selector with +1 and +5 level actions. Follower tests use the normal companion level-up notification, sound, and visual effect. These actions modify the current save.
@@ -54,11 +55,20 @@ Install these optional mods to receive the matching non-vanilla starter weapons.
 - **Knight and Assassin — [Animated Armoury - DAR Version - New Weapons with animations](https://www.nexusmods.com/skyrimspecialedition/mods/35978)** (`NewArmoury.esp`): Knight receives an Iron Pike and Assassin receives Iron Claws. Without this plugin, they receive an Iron Sword and Iron Daggers respectively.
 - **Gunslinger — [Lore Friendly Guns of Skyrim (Formerly Rifles)](https://www.nexusmods.com/skyrimspecialedition/mods/60183)** (`HandgunsOfSkyrim.esp`): Gunslinger receives an Iron Handgun and Common Lead Shot. Without this plugin, Gunslinger receives an Iron Sword.
 
+### Optional dog follower
+
+- **Explorer and Druid — [A Dog's Life](https://www.nexusmods.com/skyrimspecialedition/mods/94642)** (`ADogsLife.esp`): selecting either class adds one A Dog's Life dog follower and marks it as the current dog/follower. The plugin is optional; no dog is spawned when it is not installed. One dog is shared between the two class selections to avoid duplicates.
+
+### Optional starter horse integration
+
+- **Knight and Merchant — [A Horse's Life](https://www.nexusmods.com/skyrimspecialedition/mods/146675)** (`AHorsesLife.esp`): when installed, the class horse is registered in A Horse's Life's owned-horse list and horse faction slot, then given its player-follow package. This applies only to the player's class horse; class-assigned followers do not receive horses.
+
 ## Mod Organizer 2 installation
 
 Install ClassBound as a mod in MO2 and ensure its required SKSE plugins/frameworks are enabled. Launch the game through the SKSE loader configured for that profile. The plugin and interface assets should be present in the virtual `Data` tree at:
 
 - `Data/SKSE/Plugins/Classbound.dll`
+- `Data/ClassBoundGuards.esp` (enable this bundled plugin; it provides the Merchant guard NPCs and their Skyrim follow AI package)
 - `Data/SKSE/Plugins/ClassBound/Audio/level-up.mp3`
 - `Data/PrismaUI/views/ClassBound/`
 
@@ -75,7 +85,7 @@ The custom level-up audio file is decoded at plugin startup. If replacing it, ke
 
 ## Starting equipment by class
 
-The following items are granted when a class is first selected or changed through a class trainer. Optional weapon mods affect only the items noted below. Knight and Merchant also receive a horse at the player's current location.
+The following items are granted when a class is first selected or changed through a class trainer. Optional weapon mods affect only the items noted below. Knight and Merchant receive a horse; Merchant also receives two level-one guards (one male, one female) in Iron Armor who follow the player.
 
 ### Melee and stealth
 
@@ -90,7 +100,7 @@ The following items are granted when a class is first selected or changed throug
 - **Archer:** Long Bow, 75 Steel Arrows; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Minor Stamina Potions.
 - **Hunter:** Hunting Bow, 60 Steel Arrows; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Torches, 3 Minor Healing Potions.
 - **Marksman:** Hunting Bow, 100 Steel Arrows; Leather Armor, Leather Boots, Leather Bracers, Leather Helmet; 5 Minor Stamina Potions.
-- **Gunslinger:** Iron Handgun and 24 Common Lead Shot (requires `HandgunsOfSkyrim.esp`; the handgun falls back to an Iron Sword if the plugin is absent); Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Minor Healing Potions, 3 Minor Stamina Potions.
+- **Gunslinger:** Iron Handgun and 100 Common Lead Shot (requires `HandgunsOfSkyrim.esp`; the handgun falls back to an Iron Sword if the plugin is absent); Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 3 Minor Healing Potions, 3 Minor Stamina Potions.
 - **Crossbowman:** Crossbow, 60 Steel Bolts; Hide Armor, Hide Boots, Hide Bracers, Hide Helmet; 4 Minor Stamina Potions. The Crossbow and Steel Bolts require `Dawnguard.esm`.
 
 ### Magic
@@ -98,16 +108,16 @@ The following items are granted when a class is first selected or changed throug
 - **Mage:** Staff of Sparks; Novice Robes, Boots, Gloves, Mage Hood; 5 Minor Magicka Potions, 3 Minor Healing Potions; knows Flames, Frostbite, and Sparks; receives Firebolt and Oakflesh spell tomes.
 - **Necromancer:** Iron Dagger; Necromancer Robes, Boots, Gloves, Mage Hood; 3 Petty Soul Gems, 5 Minor Magicka Potions; knows Raise Zombie and Conjure Familiar; receives Raise Zombie and Oakflesh spell tomes.
 - **Battlemage:** Iron Sword; Iron Armor, Iron Boots, Iron Gauntlets, Iron Helmet; 4 Minor Magicka Potions, 3 Minor Healing Potions; receives Bound Sword and Oakflesh spell tomes.
-- **Druid:** Iron War Axe; Novice Robes, Boots, Gloves, Mage Hood; 4 Minor Magicka Potions, 4 Minor Healing Potions; knows Healing, Healing Hands, and Conjure Familiar; receives Conjure Familiar and Healing Hands spell tomes.
+- **Druid:** Iron War Axe; Novice Robes, Boots, Gloves, Mage Hood; 4 Minor Magicka Potions, 4 Minor Healing Potions; knows Healing, Healing Hands, and Conjure Familiar; receives Conjure Familiar and Healing Hands spell tomes; one A Dog's Life dog follower if the optional mod is installed.
 - **Elementalist:** Novice Robes, Boots, Gloves, Mage Hood; 8 Minor Magicka Potions; knows Flames, Frostbite, and Sparks; receives Firebolt and Oakflesh spell tomes.
 
 ### Social and utility
 
-- **Merchant:** Iron Dagger; Fine Clothes, Fine Boots, Gloves, Fine Hat; 1,000 Gold, 2 Garnets, 2 Amethysts, 1 Ruby, 1 Sapphire; one horse.
+- **Merchant:** Iron Dagger; Fine Clothes, Fine Boots, Gloves, Fine Hat; 1,000 Gold, 2 Garnets, 2 Amethysts, 1 Ruby, 1 Sapphire; one horse; one male and one female level-one Merchant Bodyguard equipped with Steel Armor, Steel Boots, Steel Gauntlets, Steel Helmet, Steel Sword, and Steel Shield/Hunting Bow. The bodyguards follow the player and do not share or gain ClassBound XP unless a class is assigned to them.
 - **Bard:** Iron Dagger; Tavern Clothes, Boots, Gloves, Hat; 1 Flute, 1 Lute, 100 Gold; knows Courage and Clairvoyance.
 - **Alchemist:** Iron Dagger; Fine Clothes, Fine Boots, Gloves, Mage Hood; 4 each of Minor Healing, Minor Magicka, and Minor Stamina Potions; 3 Frostbite Venoms; 1 each of Poison Recipe Note 1 and 2.
 - **Blacksmith:** Iron Mace; Blacksmith's Apron, Boots, Gloves, Leather Helmet; 10 Iron Ingots, 5 Steel Ingots, 5 Leather Strips, 5 Leather, 6 Firewood.
-- **Explorer:** Iron Sword; Fur Armor, Fur Boots, Fur Gauntlets, Fur Helmet; 5 Torches, 10 Lockpicks, 3 Minor Healing Potions; Adventurer Backpack with Bedroll if `ccfsvsse001-backpacks.esl` is installed.
+- **Explorer:** Iron Sword; Fur Armor, Fur Boots, Fur Gauntlets, Fur Helmet; 5 Torches, 10 Lockpicks, 3 Minor Healing Potions; Adventurer Backpack with Bedroll if `ccfsvsse001-backpacks.esl` is installed; one A Dog's Life dog follower if the optional mod is installed.
 
 ## Known scope
 

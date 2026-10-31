@@ -55,15 +55,12 @@
     return `<div class="character-overview"><header class="character-banner" style="--character-accent:${accents[c.category]||'#d8b66a'}"><img src="${classBannerImage(c)}" alt="${esc(c.name)} artwork"><div class="character-banner-shade"></div><div class="character-banner-copy"><span class="eyebrow">CLASSBOUND CHARACTER RECORD</span><h3>${esc(c.name)}</h3><p>${esc(c.playstyle||categoryNames[c.category]||'Adventurer')}</p></div><div class="character-banner-sigil">${esc(sigils[c.category]||'✦')}</div></header><section class="character-level-card"><div class="character-level-seal"><span>LEVEL</span><b>${level}</b><i>✦</i></div><div class="character-level-info"><div class="character-level-heading"><div><span class="eyebrow gold">YOUR JOURNEY</span><h4>${level>=100?'Maximum level reached':`Level ${level} progression`}</h4></div><strong>${level>=100?'MAX':`${Math.floor(pct)}%`}</strong></div><div class="character-xp-caption"><span>${xp.toLocaleString()} XP earned</span><b>${level>=100?'Level cap reached':`${remaining.toLocaleString()} XP to next level`}</b><span>${required.toLocaleString()} XP</span></div><div class="character-xp-track"><i style="width:${pct}%"></i></div><div class="character-level-foot"><span>CLASS LEVEL <b>${level} / 100</b></span><span>SHARED XP <b>${xp.toLocaleString()} / ${required.toLocaleString()}</b></span></div></div></section><div class="character-detail-grid"><section class="character-profile-panel"><div class="character-panel-heading"><span class="character-panel-icon">⚔</span><div><span class="eyebrow">COMBAT PROFILE</span><h4>Class attributes</h4></div></div><div class="character-stat-list">${stats}</div><p class="character-description">${esc(c.description||'Your class defines your path through Skyrim.')}</p></section><section class="character-growth-panel"><div class="character-panel-heading"><span class="character-panel-icon">✧</span><div><span class="eyebrow">PERSONAL GROWTH</span><h4>Universal skill points</h4></div></div><div class="character-point-pair"><div><small>AVAILABLE</small><b>${Number(skillPoints.available||0)}</b></div><div><small>INVESTED</small><b>${Number(skillPoints.spent||0)}</b></div><div><small>EARNED</small><b>${Number(skillPoints.earned||0)}</b></div></div><p class="character-description">Earn 3 universal points each level and shape your own build in the Skill Tree.</p><div class="character-status-line"><span class="status-dot"></span>${state.hasTrainer?'A class trainer is available nearby.':state.currentClass?'Your class is active.':'Your first class is free.'}</div></section></div></div>`;
   }
 
-  const focusDisplayNames={0:'⚔ Free Combat',1:'🛡 Protect Player',2:'🎯 Focus Player Target',3:'⚡ Prioritize Casters',4:'💀 Finish Weakest'};
-
   function renderFollowers(){
     if(!state.followers?.length)return card('No companions found','Recruit a humanoid follower and reopen this page while they are nearby.');
     return `<div class="follower-roster">${state.followers.map(f=>{
       const selected=Number(followerClassDrafts[f.formID]??f.classID??0);
       const role=state.classes.find(c=>Number(c.id)===selected);
       const xpPct=Math.min(100,100*Number(f.xp||0)/Number(f.requiredXP||100));
-      const fFocus=Number(f.tacticalFocus||0);
       return `<article class="follower-card">
         <header class="follower-card-head">
           <img class="follower-portrait" src="${followerPortrait(f)}" alt="${esc(f.race||'Nord')} ${esc(f.sex||'male')} portrait">
@@ -80,46 +77,7 @@
           <div class="progress-caption"><span>ADVENTURER PROGRESS</span><b>${Number(f.xp||0)} / ${Number(f.requiredXP||100)} XP</b></div>
           <div class="progress-line"><span style="width:${xpPct}%"></span></div>
         </div>
-        ${f.classID?`
-        <div class="follower-tactics-box">
-          <div class="tactics-box-header">
-            <span class="tactics-box-icon">⚔</span>
-            <span class="tactics-box-title">COMPANION TARGETING</span>
-          </div>
-          <div class="tactics-controls-grid">
-            <div class="tactics-field">
-              <span class="tactics-field-label">TARGET PRIORITY</span>
-              <div class="tactics-dropdown" data-dropdown="focus-${f.formID}">
-                <button type="button" class="tactics-dropdown-trigger" data-tactics-toggle="focus-${f.formID}">
-                  <span class="tactics-selected-value">${esc(focusDisplayNames[fFocus]||'⚔ Free Combat')}</span>
-                  <span class="tactics-dropdown-arrow">▾</span>
-                </button>
-                <div class="tactics-dropdown-menu" id="menu-focus-${f.formID}" hidden>
-                  <button type="button" class="formation-btn ${fFocus===0?'active':''}" data-priority-focus="0" data-form-id="${f.formID}">
-                    <span class="formation-icon">⚔</span>
-                    <span class="formation-text"><b>Free Combat</b><small>Autonomous battle decisions</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fFocus===1?'active':''}" data-priority-focus="1" data-form-id="${f.formID}">
-                    <span class="formation-icon">🛡</span>
-                    <span class="formation-text"><b>Protect Player</b><small>Prioritize enemies attacking you</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fFocus===2?'active':''}" data-priority-focus="2" data-form-id="${f.formID}">
-                    <span class="formation-icon">🎯</span>
-                    <span class="formation-text"><b>Focus Player Target</b><small>Attack player's chosen target</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fFocus===3?'active':''}" data-priority-focus="3" data-form-id="${f.formID}">
-                    <span class="formation-icon">⚡</span>
-                    <span class="formation-text"><b>Prioritize Casters</b><small>Mages & ranged archers first</small></span>
-                  </button>
-                  <button type="button" class="formation-btn ${fFocus===4?'active':''}" data-priority-focus="4" data-form-id="${f.formID}">
-                    <span class="formation-icon">💀</span>
-                    <span class="formation-text"><b>Finish Weakest</b><small>Execute lowest health enemies</small></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`:''}
+
         <div class="follower-assign-row">
           <label><small>ASSIGN CLASS</small>
             <div class="tactics-select-wrap">
@@ -215,51 +173,9 @@
       renderDynamic();
       return;
     }
-    const trigger=e.target.closest('[data-tactics-toggle]');
-    if(trigger){
-      const menuId='menu-'+trigger.dataset.tacticsToggle;
-      const menu=document.getElementById(menuId);
-      if(menu){
-        const isHidden=menu.hidden;
-        document.querySelectorAll('.tactics-dropdown-menu').forEach(m=>m.hidden=true);
-        document.querySelectorAll('.tactics-dropdown').forEach(d=>d.classList.remove('open'));
-        if(isHidden){
-          menu.hidden=false;
-          trigger.closest('.tactics-dropdown').classList.add('open');
-        }
-      }
-      return;
-    }
-    const priorityBtn=e.target.closest('[data-priority-focus]');
-    if(priorityBtn){
-      const formID=Number(priorityBtn.dataset.formId);
-      const val=Number(priorityBtn.dataset.priorityFocus);
-      priorityBtn.parentElement.querySelectorAll('.formation-btn').forEach(b=>b.classList.remove('active'));
-      priorityBtn.classList.add('active');
-      const follower=state.followers.find(f=>Number(f.formID)===formID);
-      if(follower)follower.tacticalFocus=val;
-      const dropdown=priorityBtn.closest('.tactics-dropdown');
-      if(dropdown){
-        dropdown.querySelector('.tactics-selected-value').textContent=focusDisplayNames[val]||'⚔ Free Combat';
-        dropdown.classList.remove('open');
-        const menu=dropdown.querySelector('.tactics-dropdown-menu');
-        if(menu)menu.hidden=true;
-      }
-      send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalFocus:val}));
-      return;
-    }
     const button=e.target.closest('[data-test-action]');if(!button)return;send('cbTestAction',JSON.stringify({action:button.dataset.testAction,amount:Number(button.dataset.amount),formID:Number((button.dataset.testAction==='follower-levels'?$('test-follower-subject'):$('test-subject'))?.value||0)}));});
   $('dynamic-content').addEventListener('change',e=>{if(e.target.id==='test-subject'){selectedTestSubject=Number(e.target.value||0);return;}});
   $('dynamic-content').addEventListener('change',e=>{
-    const tactics=e.target.closest('[data-follower-tactics]');
-    if(tactics){
-      const formID=Number(tactics.dataset.formId);
-      const val=Number(e.target.value);
-      if(tactics.dataset.followerTactics==='focus'){
-        send('cbFollowerTacticsChanged',JSON.stringify({formID,tacticalFocus:val}));
-      }
-      return;
-    }
     const follower=e.target.closest('[data-follower-class]');
     if(follower){followerClassDrafts[follower.dataset.followerClass]=Number(follower.value);renderDynamic();return;}
     if(e.target.matches('[data-setting]')){if(e.target.dataset.setting==='xpMultiplier')$('xp-multiplier-label').textContent=`×${Number(e.target.value).toFixed(1)}`;const settings={...state.settings};document.querySelectorAll('[data-setting]').forEach(el=>settings[el.dataset.setting]=el.type==='checkbox'?el.checked:Number(el.value));send('cbSettingsChanged',JSON.stringify(settings));}
