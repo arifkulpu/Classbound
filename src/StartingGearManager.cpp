@@ -13,6 +13,9 @@ namespace Classbound
 	{
 		constexpr std::uint32_t kSaddledBrownHorseFormID = 0x00023AB2;
 		constexpr std::uint32_t kPlayerHorseFactionFormID = 0x00068D78;
+		constexpr std::uint32_t kPlayerHorseStayPutPackageFormID = 0x0009845C;
+		constexpr std::uint32_t kDefaultStayAtCurrentLocationPackageFormID = 0x0002AC7B;
+		constexpr std::uint32_t kPlayerFactionFormID = 0x00000018;
 	constexpr std::uint32_t kCurrentFollowerFactionFormID = 0x0005C84D;
 	constexpr std::uint32_t kAHLFollowPackageLocalFormID = 0x00000B13;
 	constexpr std::uint32_t kAHLOwnedHorsesListLocalFormID = 0x00000B11;
@@ -52,50 +55,72 @@ namespace Classbound
 
 	bool IntegrateHorseWithAHL(RE::TESDataHandler* dataHandler, RE::Actor* horse)
 	{
-		if (!dataHandler || !horse ||
-			!(dataHandler->LookupLoadedModByName(kAHLPlugin) || dataHandler->LookupLoadedLightModByName(kAHLPlugin))) return false;
+		if (!dataHandler || !horse) return false;
 
-		auto* followPackage = LookupLightPluginForm<RE::TESPackage>(dataHandler, kAHLFollowPackageLocalFormID, kAHLPlugin);
-		auto* ownedHorses = LookupLightPluginForm<RE::BGSListForm>(dataHandler, kAHLOwnedHorsesListLocalFormID, kAHLPlugin);
-		if (!followPackage || !ownedHorses) {
-			SKSE::log::warn("StartingGearManager: A Horse's Life follow package or owned-horse list could not be resolved.");
-			return false;
-		}
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		if (!player) return false;
 
-		const bool alreadyOwned = ownedHorses->HasForm(horse);
-		const auto ownedCount = static_cast<std::uint32_t>(ownedHorses->forms.size());
-		std::uint32_t slot = ownedCount < 10 ? ownedCount : 9;
-		RE::TESFaction* ahlHorseFaction = nullptr;
-		for (std::uint32_t i = 0; i < 10; ++i) {
-			auto* candidate = LookupLightPluginForm<RE::TESFaction>(dataHandler, kAHLHorseFactionFirstLocalFormID + i, kAHLPlugin);
-			if (candidate && horse->IsInFaction(candidate)) {
-				slot = i;
-				ahlHorseFaction = candidate;
-				break;
-			}
+		// 1. Establish full vanilla engine Player ownership & faction rank 1
+		if (auto* playerHorseFaction = dataHandler->LookupForm<RE::TESFaction>(kPlayerHorseFactionFormID, "Skyrim.esm")) {
+			horse->AddToFaction(playerHorseFaction, 1);
 		}
-		if (!ahlHorseFaction) {
-			ahlHorseFaction = LookupLightPluginForm<RE::TESFaction>(
-				dataHandler, kAHLHorseFactionFirstLocalFormID + slot, kAHLPlugin);
-			if (ahlHorseFaction) horse->AddToFaction(ahlHorseFaction, 0);
+		if (auto* playerFaction = dataHandler->LookupForm<RE::TESFaction>(kPlayerFactionFormID, "Skyrim.esm")) {
+			horse->AddToFaction(playerFaction, 0);
 		}
 		if (auto* followerFaction = dataHandler->LookupForm<RE::TESFaction>(kCurrentFollowerFactionFormID, "Skyrim.esm")) {
 			horse->AddToFaction(followerFaction, 0);
 		}
-		if (auto* playerHorseFaction = dataHandler->LookupForm<RE::TESFaction>(kPlayerHorseFactionFormID, "Skyrim.esm")) {
-			horse->AddToFaction(playerHorseFaction, 0);
+
+		// Set ExtraOwnership to Player actor base so the horse is completely player-owned
+		if (auto* playerBase = player->GetActorBase()) {
+			horse->extraList.SetOwner(playerBase);
 		}
 		horse->GetActorRuntimeData().boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate);
-		if (!alreadyOwned) {
-			horse->PutCreatedPackage(followPackage, true, true, false);
-			ownedHorses->AddForm(horse);
-			SKSE::log::info("StartingGearManager: Registered class horse {:08X} in AHLFormOwnedHorses and AHLFactionHorse{:02}.",
-				horse->GetFormID(), slot + 1);
-		} else {
-			SKSE::log::info("StartingGearManager: Reconciled existing A Horse's Life horse {:08X} (slot {}).",
-				horse->GetFormID(), slot + 1);
+
+		// Designate as player's last ridden mount so vanilla and follower scripts track it
+		player->GetInfoRuntimeData().lastRiddenMount = horse->CreateRefHandle();
+
+		// Assign StayPut package to override spawn-point return behavior
+		RE::TESPackage* stayPackage = dataHandler->LookupForm<RE::TESPackage>(kPlayerHorseStayPutPackageFormID, "Skyrim.esm");
+		if (!stayPackage) {
+			stayPackage = dataHandler->LookupForm<RE::TESPackage>(kDefaultStayAtCurrentLocationPackageFormID, "Skyrim.esm");
 		}
+		if (stayPackage) {
+			horse->PutCreatedPackage(stayPackage, true, true, false);
+		}
+
+		// 2. If A Horse's Life is present, register in its owned list and slot faction
+		if (dataHandler->LookupLoadedModByName(kAHLPlugin) || dataHandler->LookupLoadedLightModByName(kAHLPlugin)) {
+			auto* followPackage = LookupLightPluginForm<RE::TESPackage>(dataHandler, kAHLFollowPackageLocalFormID, kAHLPlugin);
+			auto* ownedHorses = LookupLightPluginForm<RE::BGSListForm>(dataHandler, kAHLOwnedHorsesListLocalFormID, kAHLPlugin);
+			if (followPackage && ownedHorses) {
+				const bool alreadyOwned = ownedHorses->HasForm(horse);
+				const auto ownedCount = static_cast<std::uint32_t>(ownedHorses->forms.size());
+				std::uint32_t slot = ownedCount < 10 ? ownedCount : 9;
+				RE::TESFaction* ahlHorseFaction = nullptr;
+				for (std::uint32_t i = 0; i < 10; ++i) {
+					auto* candidate = LookupLightPluginForm<RE::TESFaction>(dataHandler, kAHLHorseFactionFirstLocalFormID + i, kAHLPlugin);
+					if (candidate && horse->IsInFaction(candidate)) {
+						slot = i;
+						ahlHorseFaction = candidate;
+						break;
+					}
+				}
+				if (!ahlHorseFaction) {
+					ahlHorseFaction = LookupLightPluginForm<RE::TESFaction>(
+						dataHandler, kAHLHorseFactionFirstLocalFormID + slot, kAHLPlugin);
+					if (ahlHorseFaction) horse->AddToFaction(ahlHorseFaction, 0);
+				}
+				if (!alreadyOwned) {
+					ownedHorses->AddForm(horse);
+					SKSE::log::info("StartingGearManager: Registered class horse {:08X} in AHLFormOwnedHorses and AHLFactionHorse{:02}.",
+						horse->GetFormID(), slot + 1);
+				}
+			}
+		}
+
 		horse->EvaluatePackage(true, true);
+		SKSE::log::info("StartingGearManager: Configured horse {:08X} with Player ownership and stay behavior.", horse->GetFormID());
 		return true;
 	}
 
@@ -511,13 +536,13 @@ namespace Classbound
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (!player) {
-			SKSE::log::warn("StartingGearManager: Cannot summon Knight horse; player is unavailable.");
+			SKSE::log::warn("StartingGearManager: Cannot summon class horse; player is unavailable.");
 			return;
 		}
 
 		auto* cell = player->GetParentCell();
 		if (!cell) {
-			SKSE::log::warn("StartingGearManager: Cannot summon Knight horse; player has no parent cell yet.");
+			SKSE::log::warn("StartingGearManager: Cannot summon class horse; player has no parent cell yet.");
 			return;
 		}
 
@@ -537,20 +562,17 @@ namespace Classbound
 
 		auto placedRefr = player->PlaceObjectAtMe(horseBase, false);
 		if (!placedRefr) {
-			SKSE::log::warn("StartingGearManager: PlaceObjectAtMe failed for Knight horse.");
+			SKSE::log::warn("StartingGearManager: PlaceObjectAtMe failed for class horse.");
 			return;
 		}
 
 		auto* horseActor = placedRefr->As<RE::Actor>();
 		if (!horseActor) {
-			SKSE::log::warn("StartingGearManager: Placed Knight horse reference is not an actor.");
+			SKSE::log::warn("StartingGearManager: Placed class horse reference is not an actor.");
 			return;
 		}
 
-		const bool ahlIntegrated = IntegrateHorseWithAHL(RE::TESDataHandler::GetSingleton(), horseActor);
-		if (!ahlIntegrated) {
-			SKSE::log::info("StartingGearManager: Spawned a class horse without A Horse's Life integration.");
-		}
+		IntegrateHorseWithAHL(RE::TESDataHandler::GetSingleton(), horseActor);
 		PrismaUIManager::Notify("Your horse has arrived!", "success");
 	}
 
@@ -773,11 +795,174 @@ namespace Classbound
 		PrismaUIManager::Notify("A loyal dog has joined your journey.", "success");
 	}
 
+	void StartingGearManager::ApplyClassStartingSkills(ClassType classType)
+	{
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		if (!player) return;
+
+		auto* avOwner = player->AsActorValueOwner();
+		if (!avOwner) return;
+
+		// 18 core Skyrim skills
+		static const std::vector<RE::ActorValue> allSkills = {
+			RE::ActorValue::kOneHanded,
+			RE::ActorValue::kTwoHanded,
+			RE::ActorValue::kArchery,
+			RE::ActorValue::kBlock,
+			RE::ActorValue::kSmithing,
+			RE::ActorValue::kHeavyArmor,
+			RE::ActorValue::kLightArmor,
+			RE::ActorValue::kPickpocket,
+			RE::ActorValue::kLockpicking,
+			RE::ActorValue::kSneak,
+			RE::ActorValue::kAlchemy,
+			RE::ActorValue::kSpeech,
+			RE::ActorValue::kAlteration,
+			RE::ActorValue::kConjuration,
+			RE::ActorValue::kDestruction,
+			RE::ActorValue::kIllusion,
+			RE::ActorValue::kRestoration,
+			RE::ActorValue::kEnchanting
+		};
+
+		// First, set all 18 skills to base 1.0f
+		for (auto av : allSkills) {
+			avOwner->SetBaseActorValue(av, 1.0f);
+		}
+
+		// Now assign class-specific primary skill values
+		std::vector<std::pair<RE::ActorValue, float>> targetSkills;
+
+		switch (classType) {
+		case ClassType::Warrior:
+			// TwoHanded: 40, Heavy Armor: 35
+			targetSkills = { { RE::ActorValue::kTwoHanded, 40.0f }, { RE::ActorValue::kHeavyArmor, 35.0f } };
+			break;
+
+		case ClassType::Knight:
+			// OneHanded: 25, Block: 30, Heavy Armor: 30
+			targetSkills = { { RE::ActorValue::kOneHanded, 25.0f }, { RE::ActorValue::kBlock, 30.0f }, { RE::ActorValue::kHeavyArmor, 30.0f } };
+			break;
+
+		case ClassType::Paladin:
+			// OneHanded: 25, Restoration: 30, Heavy Armor: 30
+			targetSkills = { { RE::ActorValue::kOneHanded, 25.0f }, { RE::ActorValue::kRestoration, 30.0f }, { RE::ActorValue::kHeavyArmor, 30.0f } };
+			break;
+
+		case ClassType::Thief:
+			// Sneak: 25, Pickpocket: 35, Lockpicking: 35
+			targetSkills = { { RE::ActorValue::kSneak, 25.0f }, { RE::ActorValue::kPickpocket, 35.0f }, { RE::ActorValue::kLockpicking, 35.0f } };
+			break;
+
+		case ClassType::Assassin:
+			// Sneak: 35, OneHanded: 35, Alchemy: 30
+			targetSkills = { { RE::ActorValue::kSneak, 35.0f }, { RE::ActorValue::kOneHanded, 35.0f }, { RE::ActorValue::kAlchemy, 30.0f } };
+			break;
+
+		case ClassType::Archer:
+			// Marksman: 30, Light Armor: 30, OneHanded: 25
+			targetSkills = { { RE::ActorValue::kArchery, 30.0f }, { RE::ActorValue::kLightArmor, 30.0f }, { RE::ActorValue::kOneHanded, 25.0f } };
+			break;
+
+		case ClassType::Hunter:
+			// Marksman: 35, Light Armor: 30, Alchemy: 25
+			targetSkills = { { RE::ActorValue::kArchery, 35.0f }, { RE::ActorValue::kLightArmor, 30.0f }, { RE::ActorValue::kAlchemy, 25.0f } };
+			break;
+
+		case ClassType::Marksman:
+			// Marksman: 40, Light Armor: 25, Sneak: 25
+			targetSkills = { { RE::ActorValue::kArchery, 40.0f }, { RE::ActorValue::kLightArmor, 25.0f }, { RE::ActorValue::kSneak, 25.0f } };
+			break;
+
+		case ClassType::Gunslinger:
+			// Marksman: 30, Light Armor: 25, OneHanded: 25
+			targetSkills = { { RE::ActorValue::kArchery, 30.0f }, { RE::ActorValue::kLightArmor, 25.0f }, { RE::ActorValue::kOneHanded, 25.0f } };
+			break;
+
+		case ClassType::Crossbowman:
+			// Marksman: 30, Light Armor: 30, OneHanded: 25
+			targetSkills = { { RE::ActorValue::kArchery, 30.0f }, { RE::ActorValue::kLightArmor, 30.0f }, { RE::ActorValue::kOneHanded, 25.0f } };
+			break;
+
+		case ClassType::Mage:
+			// Destruction: 40, Restoration: 30, Alteration: 25
+			targetSkills = { { RE::ActorValue::kDestruction, 40.0f }, { RE::ActorValue::kRestoration, 30.0f }, { RE::ActorValue::kAlteration, 25.0f } };
+			break;
+
+		case ClassType::Necromancer:
+			// Conjuration: 40, Illusion: 30, Alteration: 25
+			targetSkills = { { RE::ActorValue::kConjuration, 40.0f }, { RE::ActorValue::kIllusion, 30.0f }, { RE::ActorValue::kAlteration, 25.0f } };
+			break;
+
+		case ClassType::Battlemage:
+			// Destruction: 30, Heavy Armor: 30, Alchemy: 25
+			targetSkills = { { RE::ActorValue::kDestruction, 30.0f }, { RE::ActorValue::kHeavyArmor, 30.0f }, { RE::ActorValue::kAlchemy, 25.0f } };
+			break;
+
+		case ClassType::Druid:
+			// Conjuration: 25, Restoration: 40, Alteration: 35
+			targetSkills = { { RE::ActorValue::kConjuration, 25.0f }, { RE::ActorValue::kRestoration, 40.0f }, { RE::ActorValue::kAlteration, 35.0f } };
+			break;
+
+		case ClassType::Elementalist:
+			// Destruction: 35, Enchanting: 25, Conjuration: 25
+			targetSkills = { { RE::ActorValue::kDestruction, 35.0f }, { RE::ActorValue::kEnchanting, 25.0f }, { RE::ActorValue::kConjuration, 25.0f } };
+			break;
+
+		case ClassType::Merchant:
+			// Speech: 40, One-Handed: 20
+			targetSkills = { { RE::ActorValue::kSpeech, 40.0f }, { RE::ActorValue::kOneHanded, 20.0f } };
+			break;
+
+		case ClassType::Bard:
+			// Speech: 50, Enchanting: 25
+			targetSkills = { { RE::ActorValue::kSpeech, 50.0f }, { RE::ActorValue::kEnchanting, 25.0f } };
+			break;
+
+		case ClassType::Alchemist:
+			// Alchemy: 50, Speech: 30
+			targetSkills = { { RE::ActorValue::kAlchemy, 50.0f }, { RE::ActorValue::kSpeech, 30.0f } };
+			break;
+
+		case ClassType::Blacksmith:
+			// Smithing: 50, Two-Handed: 30
+			targetSkills = { { RE::ActorValue::kSmithing, 50.0f }, { RE::ActorValue::kTwoHanded, 30.0f } };
+			break;
+
+		case ClassType::Explorer:
+			// Alchemy: 25, Light Armor: 25, One-Handed: 25, Lockpicking: 25
+			targetSkills = { { RE::ActorValue::kAlchemy, 25.0f }, { RE::ActorValue::kLightArmor, 25.0f }, { RE::ActorValue::kOneHanded, 25.0f }, { RE::ActorValue::kLockpicking, 25.0f } };
+			break;
+
+		default:
+			break;
+		}
+
+		for (const auto& [av, val] : targetSkills) {
+			avOwner->SetBaseActorValue(av, val);
+		}
+
+		// Also update PlayerSkills internal data array if available to ensure skill progress UI is synced
+		auto* playerSkills = player->GetInfoRuntimeData().skills;
+		if (playerSkills && playerSkills->data) {
+			for (auto av : allSkills) {
+				const auto skIdx = static_cast<std::uint32_t>(av) - 6;
+				if (skIdx < RE::PlayerCharacter::PlayerSkills::Data::Skills::Skill::kTotal) {
+					playerSkills->data->skills[skIdx].level = avOwner->GetBaseActorValue(av);
+					playerSkills->data->skills[skIdx].xp = 0.0f;
+				}
+			}
+		}
+
+		SKSE::log::info("StartingGearManager: Applied class starting skill levels for class {}.", static_cast<uint32_t>(classType));
+	}
+
 	void StartingGearManager::GrantStartingGear(ClassType classType)
 	{
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		if (!player) return;
 
+		ApplyClassStartingSkills(classType);
 		GrantStartingGearToActor(player, classType);
 
 		if (classType == ClassType::Knight || classType == ClassType::Merchant) {
@@ -791,7 +976,7 @@ namespace Classbound
 		}
 
 		char msg[128];
-		snprintf(msg, sizeof(msg), "Starting equipment & spells received for class!");
+		snprintf(msg, sizeof(msg), "Starting equipment & skills configured for class!");
 		PrismaUIManager::Notify(msg, "success");
 	}
 }

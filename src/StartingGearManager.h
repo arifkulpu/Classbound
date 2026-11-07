@@ -31,6 +31,7 @@ namespace Classbound
 
 		void GrantStartingGear(ClassType classType);
 		void GrantStartingGearToActor(RE::Actor* actor, ClassType classType);
+		void ApplyClassStartingSkills(ClassType classType);
 		void RestoreClassCompanionsAfterLoad();
 
 	private:

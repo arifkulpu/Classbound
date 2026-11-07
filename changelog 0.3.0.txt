@@ -1,0 +1,116 @@
+================================================================================
+                           CLASSBOUND - CHANGELOG v0.3.0
+================================================================================
+Tarih: 07 Kasım 2026 / Date: November 07, 2026
+
+[TR] TÜRKÇE
+================================================================================
+
+1. SINIF SEÇİMİ BECERİ AĞACI VE TEMEL YETENEK SEVİYELERİ SİSTEMİ
+--------------------------------------------------------------------------------
+* Bir sınıf seçildiğinde, karakterin Skyrim temel becerileri (Skill Levels) doğrudan
+  seçilen sınıfa uygun olarak yapılandırılır.
+* Sınıfa ait olmayan diğer tüm Skyrim becerileri (18 temel beceri arasından) 1 puana
+  düşürülerek saf ve dengeli bir RPG sınıf deneyimi sağlanır.
+* 20 Sınıf İçin Başlangıç Beceri Dağılımı:
+  - Warrior:      Two-Handed: 40, Heavy Armor: 35 (Diğer tüm beceriler: 1)
+  - Knight:       One-Handed: 25, Block: 30, Heavy Armor: 30 (Diğerleri: 1)
+  - Paladin:      One-Handed: 25, Restoration: 30, Heavy Armor: 30 (Diğerleri: 1)
+  - Thief:        Sneak: 25, Pickpocket: 35, Lockpicking: 35 (Diğerleri: 1)
+  - Assassin:     Sneak: 35, One-Handed: 35, Alchemy: 30 (Diğerleri: 1)
+  - Archer:       Marksman: 30, Light Armor: 30, One-Handed: 25 (Diğerleri: 1)
+  - Hunter:       Marksman: 35, Light Armor: 30, Alchemy: 25 (Diğerleri: 1)
+  - Marksman:     Marksman: 40, Light Armor: 25, Sneak: 25 (Diğerleri: 1)
+  - Gunslinger:   Marksman: 30, Light Armor: 25, One-Handed: 25 (Diğerleri: 1)
+  - Crossbowman:  Marksman: 30, Light Armor: 30, One-Handed: 25 (Diğerleri: 1)
+  - Mage:         Destruction: 40, Restoration: 30, Alteration: 25 (Diğerleri: 1)
+  - Necromancer:  Conjuration: 40, Illusion: 30, Alteration: 25 (Diğerleri: 1)
+  - Battlemage:   Destruction: 30, Heavy Armor: 30, Alchemy: 25 (Diğerleri: 1)
+  - Druid:        Conjuration: 25, Restoration: 40, Alteration: 35 (Diğerleri: 1)
+  - Elementalist: Destruction: 35, Enchanting: 25, Conjuration: 25 (Diğerleri: 1)
+  - Merchant:     Speech: 40, One-Handed: 20 (Diğerleri: 1)
+  - Bard:         Speech: 50, Enchanting: 25 (Diğerleri: 1)
+  - Alchemist:    Alchemy: 50, Speech: 30 (Diğerleri: 1)
+  - Blacksmith:   Smithing: 50, Two-Handed: 30 (Diğerleri: 1)
+  - Explorer:     Alchemy: 25, Light Armor: 25, One-Handed: 25, Lockpicking: 25 (Diğerleri: 1)
+* Skyrim beceri arayüzü (Skill UI) ve deneyim çubukları (XP progress) yeni seviyelerle
+  anında tam senkronize olacak şekilde güncellenir.
+
+--------------------------------------------------------------------------------
+2. AT SAHİPLİĞİ VE SABİTLEME (HORSE OWNERSHIP & STAY BEHAVIOR) DÜZELTMESİ
+--------------------------------------------------------------------------------
+* Knight ve Merchant sınıflarına verilen atlarda, attan inildiğinde doğduğu konuma
+  geri dönme (spawn point tethering / wandering) sorunu tamamen çözüldü.
+* At referansına doğrudan Oyuncu Karakteri mülkiyeti (ExtraOwnership -> Player ActorBase)
+  ve PlayerHorseFaction (Rank 1) ile PlayerFaction atandı.
+* Atın son binilen binek (lastRiddenMount) olarak oyun motoruna kaydedilmesi sağlandı;
+  böylece hızlı seyahatte (fast-travel) kaybolmaz.
+* Vanilla PlayerHorseStayPut ve DefaultStayAtCurrentLocation AI paketleri bağlanarak
+  attan inildiğinde atın tam bırakıldığı noktada beklemesi sağlandı.
+* "A Horse's Life" modu ile çift yönlü uyumluluk korundu.
+
+--------------------------------------------------------------------------------
+3. TÜCCAR KORUMALARI (MERCHANT GUARDS) YENİDEN YAPILANDIRILMASI
+--------------------------------------------------------------------------------
+* Merchant sınıfına verilen korumaların haydut şablonları kaldırıldı.
+* Bağımsız Nord savaşçı yüzü, temiz ses tipleri (MaleEvenToned / FemaleYoungEager)
+  ve resmi çelik zırh setlerine sahip bağımsız "Merchant Bodyguard" NPC'leri eklendi.
+* Takipçi hedef önceliği (Target Priority / Focus) sistemi arayüz ve motor kodlarından
+  kaldırılarak takipçi yönetim sistemi sadeleştirildi.
+
+
+================================================================================
+[EN] ENGLISH
+================================================================================
+
+1. CLASS-SPECIFIC BASE SKILL LEVELS & SKILL TREE SYSTEM
+--------------------------------------------------------------------------------
+* When a class is selected, character core Skyrim skills are dynamically initialized
+  and set according to the class archetype.
+* All other non-class skills (out of the 18 core Skyrim skills) are reset to level 1,
+  providing a true, specialized RPG class experience.
+* Base Skill Breakdown across 20 Classes:
+  - Warrior:      Two-Handed: 40, Heavy Armor: 35 (All other skills: 1)
+  - Knight:       One-Handed: 25, Block: 30, Heavy Armor: 30 (Others: 1)
+  - Paladin:      One-Handed: 25, Restoration: 30, Heavy Armor: 30 (Others: 1)
+  - Thief:        Sneak: 25, Pickpocket: 35, Lockpicking: 35 (Others: 1)
+  - Assassin:     Sneak: 35, One-Handed: 35, Alchemy: 30 (Others: 1)
+  - Archer:       Marksman: 30, Light Armor: 30, One-Handed: 25 (Others: 1)
+  - Hunter:       Marksman: 35, Light Armor: 30, Alchemy: 25 (Others: 1)
+  - Marksman:     Marksman: 40, Light Armor: 25, Sneak: 25 (Others: 1)
+  - Gunslinger:   Marksman: 30, Light Armor: 25, One-Handed: 25 (Others: 1)
+  - Crossbowman:  Marksman: 30, Light Armor: 30, One-Handed: 25 (Others: 1)
+  - Mage:         Destruction: 40, Restoration: 30, Alteration: 25 (Others: 1)
+  - Necromancer:  Conjuration: 40, Illusion: 30, Alteration: 25 (Others: 1)
+  - Battlemage:   Destruction: 30, Heavy Armor: 30, Alchemy: 25 (Others: 1)
+  - Druid:        Conjuration: 25, Restoration: 40, Alteration: 35 (Others: 1)
+  - Elementalist: Destruction: 35, Enchanting: 25, Conjuration: 25 (Others: 1)
+  - Merchant:     Speech: 40, One-Handed: 20 (Others: 1)
+  - Bard:         Speech: 50, Enchanting: 25 (Others: 1)
+  - Alchemist:    Alchemy: 50, Speech: 30 (Others: 1)
+  - Blacksmith:   Smithing: 50, Two-Handed: 30 (Others: 1)
+  - Explorer:     Alchemy: 25, Light Armor: 25, One-Handed: 25, Lockpicking: 25 (Others: 1)
+* Internal PlayerSkills runtime progression data is synchronized seamlessly with the
+  Skyrim Skills menu and XP progress bars.
+
+--------------------------------------------------------------------------------
+2. HORSE OWNERSHIP & TETHERING FIX
+--------------------------------------------------------------------------------
+* Fixed an issue where horses granted to Knight and Merchant classes would wander
+  back to their initial spawn point upon dismounting.
+* Assigned explicit Player ActorBase ownership via ExtraOwnership along with
+  PlayerHorseFaction (Rank 1) and PlayerFaction membership.
+* Properly registered the horse reference to the engine's `lastRiddenMount` handle
+  for consistent fast-travel and persistence tracking.
+* Injected PlayerHorseStayPut and DefaultStayAtCurrentLocation AI packages so mounts
+  remain exactly where the player parks them.
+* Maintained full compatibility with "A Horse's Life" mod if installed.
+
+--------------------------------------------------------------------------------
+3. MERCHANT BODYGUARDS OVERHAUL & FOLLOWER CLEANUP
+--------------------------------------------------------------------------------
+* Replaced bandit-based guard templates for the Merchant class with standalone
+  Nord "Merchant Bodyguard" NPCs featuring custom voice types and steel equipment.
+* Removed the obsolete target priority/focus system from the UI and follower logic
+  to ensure a streamlined follower experience.
+================================================================================
