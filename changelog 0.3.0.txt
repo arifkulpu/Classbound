@@ -1,17 +1,39 @@
 ================================================================================
                            CLASSBOUND - CHANGELOG v0.3.0
 ================================================================================
-Tarih: 07 Kasım 2026 / Date: November 07, 2026
+Tarih: 14 Kasım 2026 / Date: November 14, 2026
 
 [TR] TÜRKÇE
 ================================================================================
 
-1. SINIF SEÇİMİ BECERİ AĞACI VE TEMEL YETENEK SEVİYELERİ SİSTEMİ
+1. BİLDİRİM KUYRUĞU VE PERFORMANS İYİLEŞTİRMESİ (NOTIFICATION THROTTLING)
 --------------------------------------------------------------------------------
-* Bir sınıf seçildiğinde, karakterin Skyrim temel becerileri (Skill Levels) doğrudan
-  seçilen sınıfa uygun olarak yapılandırılır.
-* Sınıfa ait olmayan diğer tüm Skyrim becerileri (18 temel beceri arasından) 1 puana
-  düşürülerek saf ve dengeli bir RPG sınıf deneyimi sağlanır.
+* Ekranda aynı anda en fazla 2 bildirim gösterilecek şekilde kuyruk (queue) sistemi
+  getirildi. 4 veya daha fazla bildirimin aynı anda belirmesiyle oluşan oyun donma
+  ve FPS düşme sorunları tamamen çözüldü.
+* Ekrandaki bildirimler kapandıkça kuyruktaki bekleyen diğer bildirimler sırayla ve
+  akıcı bir biçimde ekrana yansıtılır.
+* Silah ve kalkan hızlı değiştirildiğinde ekranda arda arda spamlenen "Class Affinity
+  Active / Deactivated" bildirimlerine 3 saniyelik zaman aşımı koruması eklendi.
+
+--------------------------------------------------------------------------------
+2. SINIF ATI YÖNETİMİ, AKILLI AHIR PARKLAMA VE IŞINLANMA DÜZELTMESİ (HORSE FIX)
+--------------------------------------------------------------------------------
+* ClassBoundHorse.esl eklentisi ve yerel HorseManager sistemi entegre edildi.
+* Merchant ve Knight sınıfları seçildiğinde atın oyuncunun yanında doğup saniyeler
+  içinde aniden yok olması / haritadaki ahıra ışınlanması hatası düzeltildi:
+  - At doğduğunda veya attan inildiğinde 60 saniyelik koruma süresi ve 2500 birimlik
+    mesafe eşiği getirildi; at oyuncunun hemen yanındayken asla ışınlanmaz.
+* Sadece oyuncu atı geride bırakıp şehre (Whiterun, Solitude, Windhelm, Riften, Markarth)
+  veya iç mekanlara uzaklaştığında at güvenle en yakın şehir ahırına park edilir.
+* Attan inildiğinde atın doğduğu yere doğru kaçma eğilimi giderildi; oyuncu sahipliği
+  ve bekleme AI paketleri atandı.
+
+--------------------------------------------------------------------------------
+3. SINIF BAŞLANGIÇ BECERİ DAĞILIMI VE BECERİ SIFIRLAMA SİSTEMİ
+--------------------------------------------------------------------------------
+* Bir sınıf seçildiğinde karakterin 18 temel Skyrim becerisi önce 1 puana çekilir,
+  ardından seçilen sınıfa özel temel uzmanlık becerileri otomatik atanır.
 * 20 Sınıf İçin Başlangıç Beceri Dağılımı:
   - Warrior:      Two-Handed: 40, Heavy Armor: 35 (Diğer tüm beceriler: 1)
   - Knight:       One-Handed: 25, Block: 30, Heavy Armor: 30 (Diğerleri: 1)
@@ -33,42 +55,50 @@ Tarih: 07 Kasım 2026 / Date: November 07, 2026
   - Alchemist:    Alchemy: 50, Speech: 30 (Diğerleri: 1)
   - Blacksmith:   Smithing: 50, Two-Handed: 30 (Diğerleri: 1)
   - Explorer:     Alchemy: 25, Light Armor: 25, One-Handed: 25, Lockpicking: 25 (Diğerleri: 1)
-* Skyrim beceri arayüzü (Skill UI) ve deneyim çubukları (XP progress) yeni seviyelerle
-  anında tam senkronize olacak şekilde güncellenir.
+* Oyun içi Beceriler (Skills) menüsü ve XP ilerleme çubukları anında eşitlenir.
 
 --------------------------------------------------------------------------------
-2. AT SAHİPLİĞİ VE SABİTLEME (HORSE OWNERSHIP & STAY BEHAVIOR) DÜZELTMESİ
+4. TÜCCAR KORUMALARI (MERCHANT GUARDS) YENİDEN YAPILANDIRILMASI
 --------------------------------------------------------------------------------
-* Knight ve Merchant sınıflarına verilen atlarda, attan inildiğinde doğduğu konuma
-  geri dönme (spawn point tethering / wandering) sorunu tamamen çözüldü.
-* At referansına doğrudan Oyuncu Karakteri mülkiyeti (ExtraOwnership -> Player ActorBase)
-  ve PlayerHorseFaction (Rank 1) ile PlayerFaction atandı.
-* Atın son binilen binek (lastRiddenMount) olarak oyun motoruna kaydedilmesi sağlandı;
-  böylece hızlı seyahatte (fast-travel) kaybolmaz.
-* Vanilla PlayerHorseStayPut ve DefaultStayAtCurrentLocation AI paketleri bağlanarak
-  attan inildiğinde atın tam bırakıldığı noktada beklemesi sağlandı.
-* "A Horse's Life" modu ile çift yönlü uyumluluk korundu.
-
---------------------------------------------------------------------------------
-3. TÜCCAR KORUMALARI (MERCHANT GUARDS) YENİDEN YAPILANDIRILMASI
---------------------------------------------------------------------------------
-* Merchant sınıfına verilen korumaların haydut şablonları kaldırıldı.
-* Bağımsız Nord savaşçı yüzü, temiz ses tipleri (MaleEvenToned / FemaleYoungEager)
-  ve resmi çelik zırh setlerine sahip bağımsız "Merchant Bodyguard" NPC'leri eklendi.
-* Takipçi hedef önceliği (Target Priority / Focus) sistemi arayüz ve motor kodlarından
+* Merchant sınıfının korumaları için haydut kalıpları kaldırıldı.
+* Özel Nord ses tiplerine (MaleEvenToned / FemaleYoungEager) ve tam çelik teçhizata
+  sahip bağımsız "Merchant Bodyguard" ref'leri eklendi.
+* Takipçi hedef önceliği (Target Priority / Focus) sistemi arayüz ve kodlardan
   kaldırılarak takipçi yönetim sistemi sadeleştirildi.
 
 
-================================================================================
+===============================================================================
 [EN] ENGLISH
 ================================================================================
 
-1. CLASS-SPECIFIC BASE SKILL LEVELS & SKILL TREE SYSTEM
+1. NOTIFICATION QUEUEING & PERFORMANCE OPTIMIZATION (NOTIFICATION THROTTLING)
 --------------------------------------------------------------------------------
-* When a class is selected, character core Skyrim skills are dynamically initialized
-  and set according to the class archetype.
-* All other non-class skills (out of the 18 core Skyrim skills) are reset to level 1,
-  providing a true, specialized RPG class experience.
+* Implemented a dynamic UI notification queue limiting concurrent toasts to a
+  maximum of 2 on screen at any time. Eliminates engine freezing and FPS drops
+  previously caused when 4+ notifications fired simultaneously.
+* Excess notifications are queued safely and dispatched one by one as visible
+  toasts expire.
+* Added a 3-second throttle on "Class Affinity Active / Deactivated" notifications
+  during rapid weapon and shield swapping.
+
+--------------------------------------------------------------------------------
+2. CLASS HORSE MANAGEMENT, SMART STABLE PARKING & TELEPORT FIX
+--------------------------------------------------------------------------------
+* Integrated ClassBoundHorse.esl alongside the native C++ HorseManager module.
+* Fixed an issue where the horse granted to the Merchant/Knight would spawn and
+  immediately vanish or teleport to a distant city stable:
+  - Added a 60-second grace window and a 2500-unit distance threshold upon spawn/
+    dismount; the horse will never teleport away while close to the player.
+* When the player leaves the horse behind and enters a major city or interior, the
+  horse automatically and safely parks at the nearest city stable marker.
+* Prevented mounts from wandering back to their initial spawn point upon dismount
+  via Player ownership and Stay-Put AI packages.
+
+--------------------------------------------------------------------------------
+3. CLASS-SPECIFIC BASE SKILL LEVELS & SKILL TREE INITIALIZATION
+--------------------------------------------------------------------------------
+* Selecting a class now resets all 18 core Skyrim skills down to level 1 first,
+  then applies the exact specialization skill values tailored to the class.
 * Base Skill Breakdown across 20 Classes:
   - Warrior:      Two-Handed: 40, Heavy Armor: 35 (All other skills: 1)
   - Knight:       One-Handed: 25, Block: 30, Heavy Armor: 30 (Others: 1)
@@ -90,24 +120,11 @@ Tarih: 07 Kasım 2026 / Date: November 07, 2026
   - Alchemist:    Alchemy: 50, Speech: 30 (Others: 1)
   - Blacksmith:   Smithing: 50, Two-Handed: 30 (Others: 1)
   - Explorer:     Alchemy: 25, Light Armor: 25, One-Handed: 25, Lockpicking: 25 (Others: 1)
-* Internal PlayerSkills runtime progression data is synchronized seamlessly with the
-  Skyrim Skills menu and XP progress bars.
+* Internal PlayerSkills runtime progression data is fully synchronized with the
+  Skyrim Skills menu and progression meters.
 
 --------------------------------------------------------------------------------
-2. HORSE OWNERSHIP & TETHERING FIX
---------------------------------------------------------------------------------
-* Fixed an issue where horses granted to Knight and Merchant classes would wander
-  back to their initial spawn point upon dismounting.
-* Assigned explicit Player ActorBase ownership via ExtraOwnership along with
-  PlayerHorseFaction (Rank 1) and PlayerFaction membership.
-* Properly registered the horse reference to the engine's `lastRiddenMount` handle
-  for consistent fast-travel and persistence tracking.
-* Injected PlayerHorseStayPut and DefaultStayAtCurrentLocation AI packages so mounts
-  remain exactly where the player parks them.
-* Maintained full compatibility with "A Horse's Life" mod if installed.
-
---------------------------------------------------------------------------------
-3. MERCHANT BODYGUARDS OVERHAUL & FOLLOWER CLEANUP
+4. MERCHANT BODYGUARDS OVERHAUL & FOLLOWER CLEANUP
 --------------------------------------------------------------------------------
 * Replaced bandit-based guard templates for the Merchant class with standalone
   Nord "Merchant Bodyguard" NPCs featuring custom voice types and steel equipment.
