@@ -2,6 +2,7 @@
 #include "ClassManager.h"
 #include "PrismaUIManager.h"
 #include "FollowerManager.h"
+#include "HorseManager.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
 #include <algorithm>
@@ -120,6 +121,7 @@ namespace Classbound
 		}
 
 		horse->EvaluatePackage(true, true);
+		HorseManager::GetSingleton()->Track(horse);
 		SKSE::log::info("StartingGearManager: Configured horse {:08X} with Player ownership and stay behavior.", horse->GetFormID());
 		return true;
 	}
@@ -552,6 +554,13 @@ namespace Classbound
 		if (!horseBase) {
 			if (auto* dh = RE::TESDataHandler::GetSingleton()) {
 				horseBase = dh->LookupForm<RE::TESNPC>(kSaddledBrownHorseFormID, "Skyrim.esm");
+			}
+		}
+
+		// Prefer ClassBoundHorse.esl custom horse if plugin is active
+		if (auto* dhEsl = RE::TESDataHandler::GetSingleton()) {
+			if (auto* eslHorse = LookupLightPluginForm<RE::TESNPC>(dhEsl, 0x800, "ClassBoundHorse.esl")) {
+				horseBase = eslHorse;
 			}
 		}
 

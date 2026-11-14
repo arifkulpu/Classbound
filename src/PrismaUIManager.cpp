@@ -8,6 +8,7 @@
 #include "XPManager.h"
 #include "FollowerManager.h"
 #include "SettingsManager.h"
+#include "HorseManager.h"
 #include "UniversalSkillManager.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
@@ -251,6 +252,7 @@ namespace Classbound
 	{
 		// Always pump the EventManager batch check so combat exit & dummy 30s timeouts trigger promptly
 		EventManager::GetSingleton()->UpdateCombatAndTrainingBatch();
+		HorseManager::GetSingleton()->Update();
 
 		auto* self = GetSingleton();
 		const auto actorFormID = self->_trackedLevelUpActor.load(std::memory_order_relaxed);

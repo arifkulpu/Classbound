@@ -7,14 +7,63 @@
     warning: {label: 'Attention', duration: 5200, icon: '<path d="M12 3 22 20H2L12 3Z"/><path d="M12 9v5m0 3h.01"/>'},
     info: {label: 'ClassBound', duration: 4200, icon: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-9h.01"/>'}
   };
-  const remove = (toast) => {
-    if (!toast.isConnected) return;
-    toast.classList.add('toast-leave');
-    window.setTimeout(() => toast.remove(), 260);
-  };
 
+  const MAX_VISIBLE = 2; // Maximum simultaneous visible toasts on screen to prevent freeze / lag
+  const queue = [];
+  let visibleCount = 0;
   let lastMessage = '';
   let lastMessageTime = 0;
+
+  const remove = (toast) => {
+    if (!toast || !toast.isConnected) return;
+    toast.classList.add('toast-leave');
+    window.setTimeout(() => {
+      if (toast.isConnected) toast.remove();
+      visibleCount = Math.max(0, visibleCount - 1);
+      processQueue();
+    }, 260);
+  };
+
+  const processQueue = () => {
+    while (visibleCount < MAX_VISIBLE && queue.length > 0) {
+      const item = queue.shift();
+      displayToast(item);
+    }
+  };
+
+  const displayToast = ({ textMsg, category }) => {
+    const kind = styles[category] ? category : 'info';
+    const style = styles[kind];
+    const toast = document.createElement('section');
+    toast.className = `toast toast-${kind}`;
+    toast.setAttribute('role', kind === 'warning' ? 'alert' : 'status');
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = `<svg viewBox="0 0 24 24" focusable="false">${style.icon}</svg>`;
+
+    const copy = document.createElement('span');
+    copy.className = 'toast-copy';
+
+    const label = document.createElement('small');
+    label.className = 'toast-label';
+    label.textContent = style.label;
+
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.textContent = textMsg;
+
+    copy.append(label, text);
+    toast.append(icon, copy);
+
+    stack.prepend(toast);
+    visibleCount++;
+
+    window.setTimeout(() => {
+      remove(toast);
+    }, style.duration);
+  };
 
   window.classboundNotify = (message, category = 'info') => {
     const textMsg = String(message || '').trim();
@@ -28,29 +77,12 @@
     lastMessage = textMsg;
     lastMessageTime = now;
 
-    const kind = styles[category] ? category : 'info';
-    const style = styles[kind];
-    const toast = document.createElement('section');
-    toast.className = `toast toast-${kind}`;
-    toast.setAttribute('role', kind === 'warning' ? 'alert' : 'status');
-    const icon = document.createElement('span');
-    icon.className = 'toast-icon';
-    icon.setAttribute('aria-hidden', 'true');
-    icon.innerHTML = `<svg viewBox="0 0 24 24" focusable="false">${style.icon}</svg>`;
-    const copy = document.createElement('span');
-    copy.className = 'toast-copy';
-    const label = document.createElement('small');
-    label.className = 'toast-label';
-    label.textContent = style.label;
-    const text = document.createElement('span');
-    text.className = 'toast-message';
-    text.textContent = textMsg;
-    copy.append(label, text);
-    toast.append(icon, copy);
-    stack.prepend(toast);
+    // Prevent huge queue build-up (cap queue at 10 items)
+    if (queue.length >= 10) {
+      queue.shift();
+    }
 
-    // Keep stack limited to max 4 to prevent screen clatter and memory churn
-    while (stack.children.length > 4) remove(stack.lastElementChild);
-    window.setTimeout(() => remove(toast), style.duration);
+    queue.push({ textMsg, category });
+    processQueue();
   };
 })();

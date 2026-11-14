@@ -171,9 +171,14 @@ namespace Classbound
 		_isAffinityActive = true;
 		_currentProfile = profile;
 
-		char msg[128];
-		snprintf(msg, sizeof(msg), "Class Affinity Active: %s!", profile.name.c_str());
-		PrismaUIManager::Notify(msg, "success");
+		const auto nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now().time_since_epoch()).count());
+		if (nowMs - _lastNotifyTimeMs >= 3000) {
+			char msg[128];
+			snprintf(msg, sizeof(msg), "Class Affinity Active: %s!", profile.name.c_str());
+			PrismaUIManager::Notify(msg, "success");
+			_lastNotifyTimeMs = nowMs;
+		}
 		SKSE::log::info("AffinityManager: Synergy activated.");
 	}
 
@@ -360,7 +365,12 @@ namespace Classbound
 			ApplyBonuses(profile);
 		} else if (!criteriaMet && _isAffinityActive) {
 			ClearBonuses();
-			PrismaUIManager::Notify("Class Affinity deactivated (Equipment changed).", "info");
+			const auto nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::steady_clock::now().time_since_epoch()).count());
+			if (nowMs - _lastNotifyTimeMs >= 3000) {
+				PrismaUIManager::Notify("Class Affinity deactivated (Equipment changed).", "info");
+				_lastNotifyTimeMs = nowMs;
+			}
 		}
 	}
 }

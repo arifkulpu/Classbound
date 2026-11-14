@@ -74,6 +74,7 @@ add_library(${PROJECT_NAME} SHARED
 	src/FollowerManager.cpp
 	src/AffinityManager.cpp
 	src/StartingGearManager.cpp
+	src/HorseManager.cpp
 	src/KingCoreAdapter.cpp
 	src/PrismaUIManager.cpp
 )

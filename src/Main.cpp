@@ -13,6 +13,7 @@
 #include "EffectManager.h"
 #include "ClassManager.h"
 #include "StartingGearManager.h"
+#include "HorseManager.h"
 #include "KingCore/KingCoreAPI.h"
 
 using namespace std::literals;
@@ -101,6 +102,7 @@ void HandleSKSEMessage(SKSE::MessagingInterface::Message* a_msg)
         SKSE::log::info("Dispatched King Core API provider registration (kPostLoad).");
     }
     else if (a_msg->type == SKSE::MessagingInterface::kDataLoaded) {
+        Classbound::HorseManager::GetSingleton()->Start();
         // Re-dispatch handshake at kDataLoaded to ensure King Core receives it even if loaded after
         DispatchKingCoreAPI("KingCore");
         DispatchKingCoreAPI(nullptr);

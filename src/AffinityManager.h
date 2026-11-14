@@ -47,5 +47,7 @@ namespace Classbound
 		bool CheckCriteria(ClassType type);
 		void ApplyBonuses(const AffinityProfile& profile);
 		void ModifyPlayerAV(uint32_t avIndex, float delta);
+
+		uint64_t _lastNotifyTimeMs{ 0 };
 	};
 }
