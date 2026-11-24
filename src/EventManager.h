@@ -68,6 +68,8 @@ namespace Classbound
 
 		// Druid follower healing cooldown (ms timestamp of last heal tick)
 		uint64_t _combatTacticsCooldownMs = 0;
+		uint64_t _bardMockeryCooldownMs = 0;
+		uint64_t _bardInspirationCooldownMs = 0;
 
 
 		// Action cooldowns to prevent repeat spam on rapid triggers

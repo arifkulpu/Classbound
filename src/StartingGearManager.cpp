@@ -345,7 +345,8 @@ namespace Classbound
 
 		case ClassType::Bard:
 			return {
-				{ 0x0001397E, 1, "Iron Dagger" },          // Dagger (flute/lute are instruments, not weapons)
+				{ 0x00012EB7, 1, "Iron Sword" },           // Versatile Short Sword
+				{ 0x0001397E, 1, "Iron Dagger" },          // Backup Dagger
 				{ 0x000D191F, 1, "Tavern Clothes" },       // Bard/Tavern Attire
 				{ 0x0001BE1B, 1, "Boots" },                // Plain Boots
 				{ 0x000261C1, 1, "Gloves" },               // Plain Gloves (handwear)
@@ -483,8 +484,30 @@ namespace Classbound
 				item.fallbackPlugin, item.fallbackFormID);
 		}
 
+		auto addCustomSpell = [&](std::uint32_t localFormID) {
+			if (auto* dh = RE::TESDataHandler::GetSingleton()) {
+				if (auto* customSpell = LookupLightPluginForm<RE::SpellItem>(dh, localFormID, "ClassBoundSpells.esp")) {
+					actor->AddSpell(customSpell);
+					SKSE::log::info("StartingGearManager: Added custom spell {} (0x{:08X}) from ClassBoundSpells.esp to {}",
+						customSpell->GetName(), localFormID, actor->GetName());
+				} else {
+					SKSE::log::warn("StartingGearManager: ClassBoundSpells.esp spell 0x{:08X} not loaded.", localFormID);
+				}
+			}
+		};
+
 		// Class-specific starter spells (if not already known)
 		switch (classType) {
+		case ClassType::Warrior:
+		case ClassType::Knight:
+			addCustomSpell(0x000818); // Battle Rally
+			break;
+
+		case ClassType::Thief:
+		case ClassType::Assassin:
+			addCustomSpell(0x000817); // Shadow Veil
+			break;
+
 		case ClassType::Mage:
 		case ClassType::Elementalist:
 			AddSpellToActor(actor, 0x00012FD0); // Flames
@@ -492,6 +515,7 @@ namespace Classbound
 			AddSpellToActor(actor, 0x0002DD2A); // Sparks
 			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Firebolt (attack)
 			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
+			addCustomSpell(0x000815); // Arcane Surge
 			break;
 
 		case ClassType::Necromancer:
@@ -499,11 +523,15 @@ namespace Classbound
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
 			AddItemToActor(actor, 0x0009E2AA, 1); // Spell Tome: Raise Zombie (attack/summon)
 			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
+			addCustomSpell(0x000813); // Soul Siphon
 			break;
 
 		case ClassType::Battlemage:
+			AddSpellToActor(actor, 0x00012FD0); // Flames
+			AddSpellToActor(actor, 0x0002DD2A); // Sparks
 			AddItemToActor(actor, 0x0009E2A9, 1); // Spell Tome: Bound Sword (attack)
 			AddItemToActor(actor, 0x0009E2A8, 1); // Spell Tome: Oakflesh (defense)
+			addCustomSpell(0x000814); // Arcane Edge
 			break;
 
 		case ClassType::Paladin:
@@ -511,6 +539,7 @@ namespace Classbound
 			AddSpellToActor(actor, 0x0004D3F2); // Lesser Ward
 			AddItemToActor(actor, 0x000A26FD, 1); // Spell Tome: Firebolt (attack)
 			AddItemToActor(actor, 0x0009E2AE, 1); // Spell Tome: Lesser Ward (defense)
+			addCustomSpell(0x000811); // Holy Smite
 			break;
 
 		case ClassType::Druid:
@@ -519,11 +548,20 @@ namespace Classbound
 			AddSpellToActor(actor, 0x0004E3CF); // Conjure Familiar
 			AddItemToActor(actor, 0x0009E2AB, 1); // Spell Tome: Conjure Familiar (attack/summon)
 			AddItemToActor(actor, 0x000A271E, 1); // Spell Tome: Healing Hands (defense)
+			addCustomSpell(0x000812); // Nature's Mend
+			break;
+
+		case ClassType::Alchemist:
+			addCustomSpell(0x000816); // Caustic Splash
 			break;
 
 		case ClassType::Bard:
-			AddSpellToActor(actor, 0x0004DEE8); // Courage
+			AddSpellToActor(actor, 0x0004DEE8); // Courage (ally morale & buff)
+			AddSpellToActor(actor, 0x0004DEE9); // Calm (crowd control)
+			AddSpellToActor(actor, 0x0004DEE7); // Fury (offensive crowd control)
+			AddSpellToActor(actor, 0x00012FC6); // Healing Hands (minor ally healing / Healing Word)
 			AddSpellToActor(actor, 0x0005AD5C); // Clairvoyance
+			addCustomSpell(0x000810); // Vicious Mockery
 			break;
 
 		default:
@@ -924,8 +962,8 @@ namespace Classbound
 			break;
 
 		case ClassType::Bard:
-			// Speech: 50, Enchanting: 25
-			targetSkills = { { RE::ActorValue::kSpeech, 50.0f }, { RE::ActorValue::kEnchanting, 25.0f } };
+			// Speech: 45, Illusion: 35, One-Handed: 20
+			targetSkills = { { RE::ActorValue::kSpeech, 45.0f }, { RE::ActorValue::kIllusion, 35.0f }, { RE::ActorValue::kOneHanded, 20.0f } };
 			break;
 
 		case ClassType::Alchemist:

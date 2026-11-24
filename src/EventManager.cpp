@@ -234,7 +234,29 @@ namespace Classbound
 							if (school == RE::ActorValue::kDestruction) HandleAction("Destruction Spell Cast", 1.0f, isTargetDummy);
 							else if (school == RE::ActorValue::kConjuration) HandleAction("Conjuration Spell Cast", 1.0f, isTargetDummy);
 							else if (school == RE::ActorValue::kRestoration) HandleAction("Healing Spell Cast", 1.0f, isTargetDummy);
-							else if (school == RE::ActorValue::kIllusion) HandleAction("Illusion Spell Cast", 1.0f, isTargetDummy);
+							else if (school == RE::ActorValue::kIllusion) {
+								HandleAction("Illusion Spell Cast", 1.0f, isTargetDummy);
+
+								// Bard Class Mechanic: Vicious Mockery
+								// Illusion hits on enemies inflict psychic damage & shatter their stamina/morale.
+								if (targetActor && targetActor != player && !targetActor->IsDead() &&
+									!targetActor->IsPlayerTeammate() && !isTargetDummy &&
+									ClassManager::GetSingleton()->GetPlayerData().currentClass == ClassType::Bard) {
+									const uint64_t nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+										std::chrono::steady_clock::now().time_since_epoch()).count());
+									if (nowMs - _bardMockeryCooldownMs >= 3000) {
+										_bardMockeryCooldownMs = nowMs;
+										const float lvl = static_cast<float>(ClassManager::GetSingleton()->GetPlayerData().classLevel);
+										const float mockeryDmg = 8.0f + lvl * 1.0f;
+										const float staminaDrain = 15.0f + lvl * 1.5f;
+										if (auto* avo = targetActor->AsActorValueOwner()) {
+											avo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, -mockeryDmg);
+											avo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, -staminaDrain);
+										}
+										PrismaUIManager::Notify("Vicious Mockery! Enemy morale shattered.", "info");
+									}
+								}
+							}
 							else if (school == RE::ActorValue::kAlteration) HandleAction("Alteration Spell Cast", 1.0f, isTargetDummy);
 							else HandleAction("Spell Cast", 1.0f, isTargetDummy);
 						}
@@ -315,6 +337,36 @@ namespace Classbound
 				HandleAction("Alteration Spell Cast");
 			} else {
 				HandleAction("Spell Cast");
+			}
+
+			// Bard Class Mechanic: Bardic Inspiration (Teammate Influence)
+			// Casting Illusion or Restoration spells in combat energizes nearby companions.
+			if (playerData.currentClass == ClassType::Bard && inCombat &&
+				(school == RE::ActorValue::kIllusion || school == RE::ActorValue::kRestoration)) {
+				const uint64_t nowMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::steady_clock::now().time_since_epoch()).count());
+				if (nowMs - _bardInspirationCooldownMs >= 5000) {
+					bool inspiredAny = false;
+					if (auto* lists = RE::ProcessLists::GetSingleton()) {
+						lists->ForAllActors([&](RE::Actor* actor) {
+							if (!actor || actor == player || actor->IsDead() || !actor->IsPlayerTeammate()) {
+								return RE::BSContainer::ForEachResult::kContinue;
+							}
+							if (actor->GetPosition().GetDistance(player->GetPosition()) <= 1500.0f) {
+								if (auto* avo = actor->AsActorValueOwner()) {
+									avo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, 15.0f);
+									avo->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kStamina, 20.0f);
+									inspiredAny = true;
+								}
+							}
+							return RE::BSContainer::ForEachResult::kContinue;
+						});
+					}
+					if (inspiredAny) {
+						_bardInspirationCooldownMs = nowMs;
+						PrismaUIManager::Notify("Bardic Inspiration: Companions energized!", "success");
+					}
+				}
 			}
 		}
 

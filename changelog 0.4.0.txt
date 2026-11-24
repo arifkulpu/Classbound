@@ -1,0 +1,104 @@
+================================================================================
+                           CLASSBOUND - CHANGELOG v0.4.0
+================================================================================
+Tarih: 24 Kasım 2026 / Date: November 24, 2026
+
+[TR] TÜRKÇE
+================================================================================
+
+1. ÖZEL SINIF BÜYÜLERİ EKLENTİSİ (ClassBoundSpells.esp - ESL-Flagged)
+--------------------------------------------------------------------------------
+* Load order slotu tüketmeyen ESL bayraklı Light Plugin (ClassBoundSpells.esp)
+  oluşturularak 17 özel Magic Effect ve 9 özel Sınıf Büyüsü eklendi:
+  - Bard (Vicious Mockery): Hedefe 15 ruhsal hasar verir ve 25 Stamina kırar.
+  - Paladin (Holy Smite): Hedefe 20 kutsal hasar verir ve 20 Stamina düşürür.
+  - Druid (Nature's Mend): 10 saniye boyunca saniyede 6 Can ve 6 Stamina yeniler.
+  - Necromancer (Soul Siphon): Hedefe 18 hasar verir ve 20 Magicka emer.
+  - Battlemage (Arcane Edge): 20 sn boyunca Tek El hasarını +%20 ve Zırhı +40 artırır.
+    (Ayrıca Battlemage artık başlangıçta Flames ve Sparks büyüleriyle başlar.)
+  - Mage & Elementalist (Arcane Surge): 15 sn boyunca Magicka yenilenmesini
+    +%50 hızlandırır.
+  - Alchemist (Caustic Splash): 12 asit hasarı verir ve hedefin zırhını 10 sn
+    boyunca 35 puan eritir.
+  - Thief & Assassin (Shadow Veil): 15 sn boyunca Gizliliği +%20 ve Hareket
+    Hızını +%15 artırır.
+  - Warrior & Knight (Battle Rally): 15 sn boyunca Zırhı +30 ve Stamina
+    yenilenmesini +%25 artırır.
+
+--------------------------------------------------------------------------------
+2. BARD (OZAN) SINIFI YENİDEN YAPILANDIRMASI (BARD REWORK)
+--------------------------------------------------------------------------------
+* D&D ve klasik RPG ozan arketipine uygun olarak Bard sınıfı kitle kontrolü,
+  yoldaş desteği (teammate influence) ve hafif şifa üzerine yeniden tasarlandı.
+* Başlangıç Büyüleri Güncellendi:
+  - Vicious Mockery (ClassBoundSpells.esp), Courage, Calm, Fury, Healing Hands
+    (hafif müttefik şifası) ve Clairvoyance.
+* Çok Yönlü Silah Seçeneği:
+  - Mevcut Iron Dagger yanına kısa kılıç alternatifi olarak Iron Sword eklendi.
+* Başlangıç Becerileri (Starting Skills) Güncellendi:
+  - Speech: 45, Illusion: 35, One-Handed: 20 olarak güncellendi.
+
+--------------------------------------------------------------------------------
+3. ÖZEL BARD SINIF MEKANİKLERİ (VICIOUS MOCKERY & BARDIC INSPIRATION)
+--------------------------------------------------------------------------------
+* Vicious Mockery (Pasif Illusion İsabet Etkisi):
+  - Bard sınıfındaki oyuncu düşmana herhangi bir Illusion büyüsü isabet
+    ettirdiğinde (3 sn bekleme süresiyle) ek ruhsal sağlık hasarı
+    (8 + Sınıf Seviyesi) ve Stamina kırılması (15 + Sınıf Seviyesi x 1.5) uygular.
+* Bardic Inspiration (Yoldaş İlhamı / Teammate Influence):
+  - Bard savaş sırasında bir Illusion veya Restoration büyüsü yaptığında
+    (5 sn bekleme süresiyle) 1500 birim içindeki tüm aktif yoldaşların
+    Can (+15) ve Stamina (+20) değerlerini yeniler.
+* Sınıf Seçim Menüsü Güncellemesi:
+  - Bard sınıfının açıklaması ve başlangıç bonus listesi yeni mekanikleri
+    yansıtacak şekilde güncellendi.
+
+
+================================================================================
+[EN] ENGLISH
+================================================================================
+
+1. CUSTOM CLASS SPELLS PLUGIN (ClassBoundSpells.esp - ESL-Flagged)
+--------------------------------------------------------------------------------
+* Introduced ClassBoundSpells.esp, an ESL-flagged Light Plugin (zero normal ESP
+  slot cost) featuring 17 custom Magic Effects and 9 signature Class Spells:
+  - Bard (Vicious Mockery): Deals 15 psychic damage and drains 25 Stamina.
+  - Paladin (Holy Smite): Deals 20 radiant damage and drains 20 Stamina.
+  - Druid (Nature's Mend): Restores 6 Health and 6 Stamina per second for 10s.
+  - Necromancer (Soul Siphon): Deals 18 damage and drains 20 Magicka.
+  - Battlemage (Arcane Edge): Grants +20% One-Handed damage and +40 Armor for 20s.
+    (Battlemage also now starts with Flames and Sparks already learned.)
+  - Mage & Elementalist (Arcane Surge): Boosts Magicka regeneration by +50% for 15s.
+  - Alchemist (Caustic Splash): Deals 12 acid damage and melts 35 Armor for 10s.
+  - Thief & Assassin (Shadow Veil): Grants +20% Sneak and +15% Speed for 15s.
+  - Warrior & Knight (Battle Rally): Grants +30 Armor and +25% Stamina Regen for 15s.
+
+--------------------------------------------------------------------------------
+2. BARD CLASS REWORK (CONTROL, SUPPORT & VERSATILITY)
+--------------------------------------------------------------------------------
+* Redesigned the Bard class around D&D-inspired crowd control, teammate
+  influence, and minor healing support.
+* Updated Starting Spells:
+  - Vicious Mockery (ClassBoundSpells.esp), Courage, Calm, Fury, Healing Hands
+    (minor ally healing), and Clairvoyance.
+* Versatile Starting Weapons:
+  - Added an Iron Sword alongside the existing Iron Dagger for short-sword /
+    dagger versatility.
+* Updated Starting Skill Distribution:
+  - Replaced previous values with Speech: 45, Illusion: 35, One-Handed: 20.
+
+--------------------------------------------------------------------------------
+3. CUSTOM BARD CLASS MECHANICS (VICIOUS MOCKERY & BARDIC INSPIRATION)
+--------------------------------------------------------------------------------
+* Vicious Mockery (Illusion Hit Synergy):
+  - Hitting an enemy with any Illusion spell as a Bard triggers Vicious Mockery
+    (3-second cooldown), inflicting bonus psychic health damage (8 + Class Level)
+    and draining enemy Stamina (15 + Class Level x 1.5).
+* Bardic Inspiration (Teammate Influence):
+  - Casting an Illusion or Restoration spell in combat as a Bard (5-second
+    cooldown) energizes all active companions within 1500 units, restoring
+    +15 Health and +20 Stamina.
+* Updated Class Registry UI:
+  - Refreshed the Bard description and starting bonuses display to reflect
+    Vicious Mockery, Bardic Inspiration, and minor healing/control spells.
+================================================================================

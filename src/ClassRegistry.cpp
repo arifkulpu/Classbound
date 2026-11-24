@@ -420,9 +420,9 @@ namespace Classbound
 			d.type = ClassType::Bard; d.category = MainCategory::Social;
 			d.name = "Bard"; d.playstyle = "Support & Morale";
 			d.icon = "[BRD]";
-			d.description = "Inspires allies with legendary songs and confuses enemies with captivating Illusion melodies.";
+			d.description = "Inspires allies with uplifting melodies and minor healing, while shattering enemies' morale with Illusion control and Vicious Mockery.";
 			d.stats = { 3.0f, 3.0f, 6.0f, 5.0f, 8.0f };
-			d.startingBonuses = { "Illusion Spell Cost -10%", "Companion Damage +10%", "Free Tavern Stays" };
+			d.startingBonuses = { "Vicious Mockery (Illusion Debuff)", "Bardic Inspiration (Ally Buff)", "Minor Healing & Control Spells" };
 			d.xpSources = {
 				{ "Song Performed",         20  },
 				{ "Calm Spell Cast",        15  },
