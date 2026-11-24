@@ -45,6 +45,25 @@ namespace Classbound
 		return nullptr;
 	}
 
+	constexpr std::uint32_t GetCustomSpellLocalID(ClassType classType) noexcept
+	{
+		switch (classType) {
+		case ClassType::Warrior:
+		case ClassType::Knight:       return 0x000818; // Battle Rally
+		case ClassType::Thief:
+		case ClassType::Assassin:     return 0x000817; // Shadow Veil
+		case ClassType::Mage:
+		case ClassType::Elementalist: return 0x000815; // Arcane Surge
+		case ClassType::Necromancer:  return 0x000813; // Soul Siphon
+		case ClassType::Battlemage:   return 0x000814; // Arcane Edge
+		case ClassType::Paladin:      return 0x000811; // Holy Smite
+		case ClassType::Druid:        return 0x000812; // Nature's Mend
+		case ClassType::Alchemist:    return 0x000816; // Caustic Splash
+		case ClassType::Bard:         return 0x000810; // Vicious Mockery
+		default:                      return 0;
+		}
+	}
+
 	RE::TESNPC* FindNPCByEditorID(RE::TESDataHandler* dataHandler, std::string_view editorID)
 	{
 		if (!dataHandler) return nullptr;
@@ -749,11 +768,36 @@ namespace Classbound
 	void StartingGearManager::RestoreClassCompanionsAfterLoad()
 	{
 		const auto currentClass = ClassManager::GetSingleton()->GetPlayerData().currentClass;
+		auto* player = RE::PlayerCharacter::GetSingleton();
+		auto* dataHandler = RE::TESDataHandler::GetSingleton();
+
+		// Ensure existing saves receive newly introduced class spells if missing.
+		if (player && dataHandler && currentClass != ClassType::None) {
+			if (const auto customID = GetCustomSpellLocalID(currentClass); customID != 0) {
+				if (auto* customSpell = LookupLightPluginForm<RE::SpellItem>(dataHandler, customID, "ClassBoundSpells.esp")) {
+					if (!player->HasSpell(customSpell)) {
+						player->AddSpell(customSpell);
+						SKSE::log::info("StartingGearManager: Backfilled custom spell {} for loaded save.", customSpell->GetName());
+					}
+				}
+			}
+			if (currentClass == ClassType::Bard) {
+				for (std::uint32_t spellID : { 0x0004DEE9u, 0x0004DEE7u, 0x00012FC6u }) {
+					auto* form = RE::TESForm::LookupByID(spellID);
+					if (!form) form = dataHandler->LookupForm(spellID, "Skyrim.esm");
+					if (auto* sp = form ? form->As<RE::SpellItem>() : nullptr) {
+						if (!player->HasSpell(sp)) {
+							player->AddSpell(sp);
+						}
+					}
+				}
+			}
+		}
+
 		if (currentClass == ClassType::Merchant) {
 			SpawnMerchantGuards();
 		}
 
-		auto* dataHandler = RE::TESDataHandler::GetSingleton();
 		auto* processLists = RE::ProcessLists::GetSingleton();
 		if (!dataHandler || !processLists) return;
 
